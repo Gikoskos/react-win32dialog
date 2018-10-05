@@ -1,0 +1,1 @@
+Example app that uses react-win32dialog.

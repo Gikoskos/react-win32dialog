@@ -1,0 +1,165 @@
+$dialog-grey: #d4d0c8;
+
+@mixin horizontal-gradient($from, $to, $stop: 100%) {
+    /* fallback/image non-cover color */
+    background-color: $from;
+
+    /* Firefox 3.6+ */
+    background-image: -moz-linear-gradient(left, $from 0%, $to $stop);
+
+    /* Safari 4+, Chrome 1+ */
+    background-image: -webkit-gradient(linear, left top, right top, color-stop(0%, $from), color-stop($stop, $to));
+
+    /* Safari 5.1+, Chrome 10+ */
+    background-image: -webkit-linear-gradient(left, $from 0%, $to $stop);
+
+    /* Opera 11.10+ */
+    background-image: -o-linear-gradient(left, $from 0%, $to $stop);
+
+    /* IE10+ */
+    background: -ms-linear-gradient(left, $from 0%, $to $stop);
+
+    /* Standard */
+    background: linear-gradient(to right, $from 0%, $to $stop);
+
+    /* IE6-9 */
+    //filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='ie-hex-str(#{$from})', endColorstr='ie-hex-str(#{$to})',GradientType=1);
+}
+
+@mixin unselectable {
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.react-win32dialog-cursor-default {
+    cursor: default;
+}
+
+.react-win32dialog-cursor-s-resize {
+    cursor: s-resize;
+}
+
+.react-win32dialog-cursor-se-resize {
+    cursor: se-resize;
+}
+
+.react-win32dialog-cursor-sw-resize {
+    cursor: sw-resize;
+}
+
+.react-win32dialog-cursor-n-resize {
+    cursor: n-resize;
+}
+
+.react-win32dialog-cursor-ne-resize {
+    cursor: ne-resize;
+}
+
+.react-win32dialog-cursor-nw-resize {
+    cursor: nw-resize;
+}
+
+.react-win32dialog-cursor-e-resize {
+    cursor: e-resize;
+}
+
+.react-win32dialog-cursor-w-resize {
+    cursor: w-resize;
+}
+
+.react-win32dialog-tooltip {
+    display: block;
+    z-index: 3;
+    position: absolute;
+    border: 1px solid black;
+    background-color: #FFFFE1;
+    font-size: 11px;
+    font-weight: lighter;
+    color: black;
+    padding: 2px 3px;
+    font-family: Tahoma, Arial;
+    @include unselectable;
+}
+
+.react-win32dialog-outer-border {
+    position: absolute;
+    box-sizing: border-box;
+    overflow: hidden;
+    color: #D4D0C8;
+    border-style: outset;
+    border-color: $dialog-grey;
+    background-color: darkslategray;
+    font-family: Tahoma, Arial;
+}
+
+.react-win32dialog-outer-border-focused {
+    background-color: dodgerblue;
+    outline: unset;
+    box-shadow: 0 0 3px black;
+    color: white;
+}
+
+.react-win32dialog-titlebar {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+
+    padding: 0 2px 1px 2px;
+    font-size: 11px;
+    font-weight: bold;
+    @include unselectable;
+    @include horizontal-gradient(#808080, #c0c0c0);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    border: 2px solid $dialog-grey;
+    border-bottom-width: 1px;
+    height: 17px;
+
+    span {
+        text-overflow: ellipsis;
+        overflow: hidden;
+        @include unselectable;
+        vertical-align: middle;
+        margin-right: 5px;
+    }
+}
+
+.react-win32dialog-titlebar-icon {
+    margin-right: 4px;
+}
+
+.react-win32dialog-titlebar-focused {
+    @include horizontal-gradient(#162e6f, #b4cbe3);
+}
+
+.react-win32dialog-titlebar-buttons {
+    //https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flexible_Box_Layout/Aligning_Items_in_a_Flex_Container#Using_auto_margins_for_main_axis_alignment
+    margin-left: auto;
+
+    :nth-child(2) {
+        margin-right: 2px;
+    }
+}
+
+.react-win32dialog-titlebar-button {
+    background-color: $dialog-grey;
+    border: 2px outset $dialog-grey;
+    border-left-width: 1px;
+    border-top-width: 1px;
+    display: inline-block;
+    width: 13px;
+    height: 11px;
+}
+
+.react-win32dialog-titlebar-button-active {
+    border-style: inset;
+    img {
+        margin-top: 1px;
+        margin-left: 1px;
+    }
+}
