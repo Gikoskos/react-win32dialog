@@ -2,7 +2,9 @@
 
 React component library for modeless, resizeable and moveable dialog boxes with a classic Windows look-and-feel.
 
-[![NPM](https://img.shields.io/npm/v/react-win32dialog.svg)](https://www.npmjs.com/package/react-win32dialog) [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+[Example](https://gikoskos.github.io/react-win32dialog/)
+
+[![NPM](https://img.shields.io/npm/v/react-win32dialog.svg)](https://www.npmjs.com/package/react-win32dialog)
 
 ## Install
 

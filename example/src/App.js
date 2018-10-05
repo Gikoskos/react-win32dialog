@@ -10,7 +10,7 @@ const thinBlackBorder = {
 };
 
 const styles = {
-    container: {
+    internalBorder: {
         ...thinBlackBorder,
         display: 'flex',
         flexDirection: 'column',
@@ -23,6 +23,10 @@ const styles = {
     msg2: {
         ...thinBlackBorder,
         color: 'cyan',
+    },
+    container: {
+        height: '100%',
+        width: '100%',
     }
 };
 
@@ -62,25 +66,21 @@ export default class App extends Component {
 
         return (
             <Fragment>
-                <div style={{
-                    width: 1000,
-                    height: 500,
-                    backgroundColor: 'white'
-                }}>
-                <Win32Dialog {...window1Opts}>
-                    <div style={styles.container}>
-                        <div style={styles.msg1}>
-                            {this.state.msg1}
+                <div style={styles.container}>
+                    <Win32Dialog {...window1Opts}>
+                        <div style={styles.internalBorder}>
+                            <div style={styles.msg1}>
+                                {this.state.msg1}
+                            </div>
                         </div>
-                    </div>
-                </Win32Dialog>
-                <Win32Dialog {...window2Opts}>
-                    <div style={styles.container}>
-                        <div style={styles.msg2}>
-                            {this.state.msg2}
+                    </Win32Dialog>
+                    <Win32Dialog {...window2Opts}>
+                        <div style={styles.internalBorder}>
+                            <div style={styles.msg2}>
+                                {this.state.msg2}
+                            </div>
                         </div>
-                    </div>
-                </Win32Dialog>
+                    </Win32Dialog>
                 </div>
             </Fragment>
         )
