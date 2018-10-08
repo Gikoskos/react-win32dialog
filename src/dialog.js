@@ -282,16 +282,6 @@ export default class Win32Dialog extends React.Component {
     }
 
     /**
-     * Maximizes/restores the window after double clicking the titlebar.
-     * @private
-     */
-    _onTitlebarDoubleClick = () => {
-        if (!this.cursorOnTitlebarButtons) {
-            this.handleTitlebarButtonClick(titlebarButtons.maximize);
-        }
-    }
-
-    /**
      * This method uses the new Selection API to programmatically deselect
      * the text displayed by a tooltip. There are some cases where the tooltip
      * text will be selected, and this isn't good because you can't select
@@ -303,11 +293,13 @@ export default class Win32Dialog extends React.Component {
     _deselectTooltipText = () => {
         if (typeof window.getSelection === 'function') {
             const sel = window.getSelection();
-            const tooltipMsg = this.state.tooltipArgs.msg;
-            let range, rangeText;
 
             if (sel.containsNode(this.tooltipRef, false)) {
-                for(let i = 0; i < sel.rangeCount; i++) {
+
+                const tooltipMsg = this.state.tooltipArgs.msg;
+                let range, rangeText;
+
+                for (let i = 0; i < sel.rangeCount; i++) {
                     range = sel.getRangeAt(i);
                     rangeText = range.toString();
 
@@ -666,12 +658,10 @@ export default class Win32Dialog extends React.Component {
                     onMouseEnter={() => this.cursorOnTitlebar = true}
                     onMouseLeave={() => this.cursorOnTitlebar = false}
                     className={titlebarClasses}
-                    onContextMenu={(ev) => ev.preventDefault()}
                 >
                     <img
                         src={this.props.icon}
                         draggable={false}
-                        onMouseDown={(ev) => ev.preventDefault()}
                         width='13'
                         height='13'
                         className='react-win32dialog-titlebar-icon'
