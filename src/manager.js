@@ -260,10 +260,12 @@ export default class WindowManager {
      * @private
      */
     _resetTooltip = () => {
+        this.showTooltipTimer.cancel();
+        this.closeTooltipTimer.cancel();
+
+        
         if (this.windowWithVisibleTooltip !== NO_VALUE) {
             this.windows[this.windowWithVisibleTooltip].closeTooltip();
-            this.showTooltipTimer.cancel();
-            this.closeTooltipTimer.cancel();
             this.windowWithVisibleTooltip = NO_VALUE;
         }
     }
@@ -298,23 +300,35 @@ export default class WindowManager {
         if (windowCursor === cursorState.regular && win.cursorOnTitlebar) {
             this._resetCursor();
 
-            if ((win.cursorOnTitlebarButtons &&
-                 win.hoverTitlebarButton !== NO_VALUE) ||
-                win.isTitleOverflowing()) {
 
-                if (this.windowWithVisibleTooltip === zIndex) {
-                    if (win.tooltipTitlebarButton !== win.hoverTitlebarButton) {
+            if (!win.cursorOnTitlebarButtons && win.isTitleOverflowing()) {
+
+                if (this.windowWithVisibleTooltip === zIndex) {    
+                    if (!win.tooltipOnTitle) {
                         this._resetTooltip();
                         this._showTooltip(zIndex);
                     }
                 } else {
-                    this.showTooltipTimer.cancel();
+                    this._resetTooltip();
                     this.showTooltipTimer.start(zIndex);
                 }
 
             } else {
-                this._resetTooltip();
+                if (win.hoverTitlebarButton === NO_VALUE) {
+                    win.hoverTitlebarButton = titlebarButtons.maximize;
+                }
+
+                if (this.windowWithVisibleTooltip === zIndex) {
+                    if (win.tooltipOnTitlebarButton !== win.hoverTitlebarButton) {
+                        this._resetTooltip();
+                        this._showTooltip(zIndex);
+                    }
+                } else {
+                    this._resetTooltip();
+                    this.showTooltipTimer.start(zIndex);
+                }
             }
+
         } else {
             this._resetTooltip();
         }
@@ -385,7 +399,7 @@ export default class WindowManager {
             }
         } else if (ev.button === 2 && this.rightClickTitlebar) {
             if (win.cursorOnTitlebar)
-                alert('Titlebar context menu not yet implemented :)');
+                console.log('Titlebar context menu not yet implemented :)');
             this.rightClickTitlebar = false;
             ev.preventDefault();
         }
@@ -464,8 +478,9 @@ export default class WindowManager {
             win = this.windows[i];
 
             if (win.cursorOnTitlebar && !win.cursorOnTitlebarButtons &&
-                win.getCursorState(this.cursorPos) === cursorState.regular)
+                win.getCursorState(this.cursorPos) === cursorState.regular) {
                 win.handleTitlebarButtonClick(titlebarButtons.maximize);
+            }
         }
     }
 

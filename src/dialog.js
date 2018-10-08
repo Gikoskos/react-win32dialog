@@ -182,10 +182,20 @@ export default class Win32Dialog extends React.Component {
         /**
          * If the tooltip is visible over any of the titlebar buttons, this property
          * takes values from the titlebarButtons object.
-         * The default value is NO_VALUE which means that the tooltip isn't visible.
+         * The default value is NO_VALUE which means that the tooltip isn't visible on
+         * any of the titlebar buttons.
          * @package
          */
-        this.tooltipTitlebarButton = NO_VALUE;
+        this.tooltipOnTitlebarButton = NO_VALUE;
+
+        /**
+         * True if the tooltip is visible on the window title.
+         * False otherwise.
+         * If (this.tooltipOnTitlebarButton === NO_VALUE) && !this.tooltipOnTitle
+         * then the tooltip isn't visible.
+         * @package
+         */
+        this.tooltipOnTitle = false;
 
         /**
          * When the user clicks maximize and then restore, they expect the dialog
@@ -282,7 +292,7 @@ export default class Win32Dialog extends React.Component {
     }
 
     /**
-     * This method uses the new Selection API to programmatically deselect
+     * This method uses the Selection API to programmatically deselect
      * the text displayed by a tooltip. There are some cases where the tooltip
      * text will be selected, and this isn't good because you can't select
      * the text from Windows dialog tooltip boxes.
@@ -411,12 +421,14 @@ export default class Win32Dialog extends React.Component {
      * @package
      */
     showTooltip = (cursor_pos) => {
-        let res = false;
+        let validTooltip = false;
 
-        if (this.hoverTitlebarButton !== NO_VALUE) {
+        if (this.cursorOnTitlebarButtons) {
+
             let idx = this.hoverTitlebarButton;
 
-            this.tooltipTitlebarButton = this.hoverTitlebarButton;
+            this.tooltipOnTitlebarButton = this.hoverTitlebarButton;
+            this.tooltipOnTitle = false;
 
             if (this.isMaximized && this.hoverTitlebarButton === titlebarButtons.maximize) {
                 //if the window is maximized, and the mouse is hovering on the maximize button,
@@ -431,8 +443,10 @@ export default class Win32Dialog extends React.Component {
                 }
             });
 
-            res = true;
-        } else if (!this.cursorOnTitlebarButtons && this.isTitleOverflowing()) {
+            validTooltip = true;
+        } else if (this.isTitleOverflowing()) {
+            this.tooltipOnTitlebarButton = NO_VALUE;
+            this.tooltipOnTitle = true;
             this.setState({
                 tooltipArgs: {
                     msg: this.props.title,
@@ -440,10 +454,10 @@ export default class Win32Dialog extends React.Component {
                 }
             });
 
-            res = true;
+            validTooltip = true;
         }
 
-        return res;
+        return validTooltip;
     }
 
     /**
@@ -453,7 +467,8 @@ export default class Win32Dialog extends React.Component {
     closeTooltip = () => {
         this.setState((prevState) => {
             if (prevState.tooltipArgs.position) {
-                this.tooltipTitlebarButton = NO_VALUE;
+                this.tooltipOnTitlebarButton = NO_VALUE;
+                this.tooltipOnTitle = false;
                 return {
                     tooltipArgs: {
                         msg: '',

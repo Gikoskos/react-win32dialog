@@ -145,7 +145,6 @@ $dialog-grey: #d4d0c8;
 .react-win32dialog-titlebar-buttons {
     //https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flexible_Box_Layout/Aligning_Items_in_a_Flex_Container#Using_auto_margins_for_main_axis_alignment
     margin-left: auto;
-    position: relative;
 
     :nth-child(2) {
         margin-right: 2px;
