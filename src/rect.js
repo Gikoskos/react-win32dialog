@@ -1,3 +1,6 @@
+/**
+ * @module rect
+ */
 'use strict';
 
 import { cursorState } from './cursor';
@@ -6,8 +9,8 @@ import { cursorState } from './cursor';
 const defaultRect = {
     w: 170,
     h: 170,
-    min_w: 120,
-    min_h: 25,
+    min_w: 118,
+    min_h: 23,
     max_w: 300,
     max_h: 300,
     border_w: 2
@@ -20,15 +23,22 @@ function isBetween(p, left, right) {
     return false;
 }
 
+/**
+ * @package
+ */
 export default class DialogRect {
     constructor(x, y, min_w, min_h, max_w, max_h, border_w) {
+        this.borderWidth = (border_w && border_w >= defaultRect.border_w) ? border_w : defaultRect.border_w;
+
         this.minWidth = (min_w && min_w > 0) ? min_w : defaultRect.min_w;
         this.minHeight = (min_h && min_h > 0) ? min_h : defaultRect.min_h;
 
         this.maxWidth = (max_w && max_w >= this.minWidth) ? max_w : defaultRect.max_w;
         this.maxHeight = (max_h && max_h >= this.minHeight) ? max_h : defaultRect.max_h;
 
-        this.borderWidth = (border_w && border_w >= defaultRect.border_w) ? border_w : defaultRect.border_w;
+        //adapt minWidth and minHeight to the border width
+        this.minWidth += 2 * this.borderWidth;
+        this.minHeight += 2 * this.borderWidth;
 
         this.left = x || 1;
         this.top = y || 1;
@@ -41,6 +51,9 @@ export default class DialogRect {
         this.cursorOffset = { x: 0, y: 0 };
     }
 
+    /**
+     * @package
+     */
     update(x, y, w, h) {
         if (x)
             this.left = x;
@@ -58,6 +71,9 @@ export default class DialogRect {
         this.bottom = this.top + this.height;
     }
 
+    /**
+     * @private
+     */
     _resizeTop(cursor_y) {
         if (cursor_y <= 0) {
             cursor_y = 1;
@@ -74,6 +90,9 @@ export default class DialogRect {
         return [new_height, new_top];
     }
 
+    /**
+     * @private
+     */
     _resizeLeft(cursor_x) {
         if (cursor_x <= 0) {
             cursor_x = 1;
@@ -91,6 +110,9 @@ export default class DialogRect {
         return [new_width, new_left];
     }
 
+    /**
+     * @private
+     */
     _resizeBottom(cursor_y) {
         let new_height = this.height + cursor_y - this.bottom;
 
@@ -101,6 +123,9 @@ export default class DialogRect {
         return new_height;
     }
 
+    /**
+     * @private
+     */
     _resizeRight(cursor_x) {
         let new_width = this.width + cursor_x - this.right;
 
@@ -111,6 +136,9 @@ export default class DialogRect {
         return new_width;
     }
 
+    /**
+     * @package
+     */
     resizeToCursor(resize_type, cursor_pos) {
         let new_top, new_left, new_width, new_height;
 
@@ -161,6 +189,9 @@ export default class DialogRect {
         this.update(new_left, new_top, new_width, new_height);
     }
 
+    /**
+     * @package
+     */
     getCursorResizeState(cursor_pos) {
         const dgOffset = 4,
               widthOffset = this.borderWidth + 1,
@@ -207,21 +238,33 @@ export default class DialogRect {
         return cursorState.regular;
     }
 
+    /**
+     * @package
+     */
     moveToCursor(cursor_pos) {
         this.update(cursor_pos.x - this.cursorOffset.x,
                     cursor_pos.y - this.cursorOffset.y);
     }
 
+    /**
+     * @package
+     */
     setCursorOffset(cursor_pos) {
         this.cursorOffset.x = cursor_pos.x - this.left;
         this.cursorOffset.y = cursor_pos.y - this.top;
     }
 
+    /**
+     * @package
+     */
     moveWithinViewport() {
         this.update((this.left <= 0) ? 1 : this.left,
                     (this.top <= 0) ? 1 : this.top);
     }
 
+    /**
+     * @package
+     */
     toString() {
         return `DialogRect = {\n` +
                `    .left = ${this.left},\n` +

@@ -1,17 +1,21 @@
+/**
+ * @module dialog
+ */
 'use strict';
 
 import React from 'react';
 import PropTypes from 'prop-types';
 import DialogRect from './rect';
 import WindowManager from './manager';
-import Tooltip from './tooltip.js';
-import { cursorState }  from './cursor.js';
+import Tooltip from './tooltip';
+import { cursorState }  from './cursor';
 import {
     titlebarButtons,
     TitlebarButton,
-} from './titlebarbutton.js';
+} from './titlebarbutton';
+import { NO_VALUE } from './globals';
 
-import styles from './styles.scss';
+
 import defaultTitlebarIcon from './assets/default-titlebar-icon.png';
 import defaultCloseIcon from './assets/default-close-icon.png';
 import defaultMinimizeIcon from './assets/default-minimize-icon.png';
@@ -19,7 +23,8 @@ import defaultMaximizeIcon from './assets/default-maximize-icon.png';
 import defaultRestoreIcon from './assets/default-restore-icon.png';
  
 
-
+//Initialize the window manager. Only one instance
+//of the window manager should be running at any given point.
 const windowManager = new WindowManager();
 
 
@@ -40,27 +45,27 @@ export default class Win32Dialog extends React.Component {
         y: PropTypes.number,
         /**
          * Minimum width that the dialog can have.
-         * @see {@link ./rect.js} for the default value.
+         * @see {module:rect} for the default value.
          */
         minWidth: PropTypes.number,
         /**
          * Minimum height that the dialog can have.
-         * @see {@link ./rect.js} for the default value.
+         * @see {module:rect} for the default value.
          */
         minHeight: PropTypes.number,
         /**
          * Maximum width that the dialog can have.
-         * @see {@link ./rect.js} for the default value.
+         * @see {module:rect} for the default value.
          */
         maxWidth: PropTypes.number,
         /**
          * Maximum height that the dialog can have.
-         * @see {@link ./rect.js} for the default value.
+         * @see {module:rect} for the default value.
          */
         maxHeight: PropTypes.number,
         /**
          * Width of the dialog's outer border.
-         * @see {@link ./rect.js} for the default value.
+         * @see {module:rect} for the default value.
          */
         borderWidth: PropTypes.number,
         /** Text that is displayed on the dialog's titlebar. */
@@ -79,6 +84,8 @@ export default class Win32Dialog extends React.Component {
         title: 'React Win32 dialog box',
         icon: defaultTitlebarIcon,
     };
+
+    static tooltipMessages = ['Minimize', 'Maximize', 'Close', 'Restore Down'];
 
     constructor(props) {
         super(props);
@@ -99,14 +106,21 @@ export default class Win32Dialog extends React.Component {
 
         this.state = {
             //CSS state start
-            borderWidth: this.rc.borderWidth,
             width: this.rc.width,
             height: this.rc.height,
             top: this.rc.top,
             left: this.rc.left,
+            borderWidth: this.rc.borderWidth,
             zIndex: 0,
             //CSS state end
 
+            /**
+             * If true then the dialog and its titlebar, have no border.
+             * Is used when the dialog is maximized and we need both the outer
+             * border and titlebar border to disappear.
+             * @private
+             */
+            noBorder: false,
 
             /**
              * Is true only when the dialog has mouse focus.
@@ -117,10 +131,10 @@ export default class Win32Dialog extends React.Component {
             /**
              * If any of the titlebar buttons is pushed, this property
              * takes values from the titlebarButtons object.
-             * The default value is -1 which means that no buttons are pushed.
+             * The default value is NO_VALUE which means that no buttons are pushed.
              * @private
              */
-            activeTitlebarButton: -1,
+            activeTitlebarButton: NO_VALUE,
 
             tooltipArgs: {
                 /**
@@ -149,7 +163,7 @@ export default class Win32Dialog extends React.Component {
         /**
          * Various self-explanatory flags.
          * Could have used a bitmask here but this is probably better for a language like js.
-         * @protected
+         * @package
          */
         this.cursorOnTitlebar =
         this.cursorOnTitlebarButtons =
@@ -160,34 +174,40 @@ export default class Win32Dialog extends React.Component {
         /**
          * If the mouse is hovering over any of the titlebar buttons, this property
          * takes values from the titlebarButtons object.
-         * The default value is -1 which means that the mouse isn't on top of any buttons.
-         * @protected
+         * The default value is NO_VALUE which means that the mouse isn't on top of any buttons.
+         * @package
          */
-        this.hoverTitlebarButton = -1;
+        this.hoverTitlebarButton = NO_VALUE;
 
         /**
          * If the tooltip is visible over any of the titlebar buttons, this property
          * takes values from the titlebarButtons object.
-         * The default value is -1 which means that the tooltip isn't visible.
-         * @protected
+         * The default value is NO_VALUE which means that the tooltip isn't visible.
+         * @package
          */
-        this.tooltipTitlebarButton = -1;
+        this.tooltipTitlebarButton = NO_VALUE;
 
         /**
          * When the user clicks maximize and then restore, they expect the dialog
          * to be in the same position and of the same size it was before it got
-         * maximized. This property caches the previous dimensions of the dialog.
+         * maximized. This property is used as a cache for the previous dimensions
+         * of the dialog.
          * @private
          */
-        this.oldRect = {
+        this.rcCache = {
             width: 0,
             height: 0,
             top: 0,
             left: 0,
         };
+
+        this.titleRef = React.createRef();
+        
     }
 
     componentDidMount() {
+        //the dialog object gets registered to the window manager
+        //after it's been initialized and mounted
         windowManager.registerWindow(this);
     }
 
@@ -196,7 +216,40 @@ export default class Win32Dialog extends React.Component {
     }
 
     componentDidUpdate() {
+        /*
+          If the tooltipRef property isn't undefined, it means that
+          the Tooltip was rendered and we have to check if it's
+          drawn outside of the viewport's rightmost side. Windows'
+          behavior in this case, is to move the tooltip as much as
+          possible to the left, so that the entire box is visible.
+
+          This:
+
+                        |\      |
+                        | \     |
+                        |  \    |
+                        |   \   |
+                        |_  _\  |
+                         _\_\___|
+                        |       |
+                        |   T o |
+                        |_______|
+
+          Becomes this:
+
+                        |\      |
+                        | \     |
+                        |  \    |
+                        |   \   |
+                        |_  _\  |
+             _____________\_\___|
+            |                   |
+            |   T o o l t i p   |
+            |___________________|
+        */
         if (this.tooltipRef) {
+            this._deselectTooltipText();
+
             const tooltipRect = this.tooltipRef.getBoundingClientRect();
 
             if (tooltipRect.right > window.innerWidth) {
@@ -218,7 +271,18 @@ export default class Win32Dialog extends React.Component {
     }
 
     /**
-     * Resizes the window if it's not maximized
+     * Caches the dialog's current dimensions.
+     * @private
+     */
+    _cacheDialogRect = () => {
+        this.rcCache.width = this.rc.width;
+        this.rcCache.height = this.rc.height;
+        this.rcCache.top = this.rc.top - window.scrollY;
+        this.rcCache.left = this.rc.left - window.scrollX;
+    }
+
+    /**
+     * Maximizes/restores the window after double clicking the titlebar.
      * @private
      */
     _onTitlebarDoubleClick = () => {
@@ -228,62 +292,86 @@ export default class Win32Dialog extends React.Component {
     }
 
     /**
-     * Resizes the window if it's not maximized or minimized
-     * @param {number} resize_type Value from the
-     * {@link ./cursor.js:resizeState} object.
-     * @param {number} cursor_pos.x Cursor's x position relative to
-     * the web page.
-     * @param {number} cursor_pos.y Cursor's y position relative to
-     * the web page.
-     * @protected
+     * This method uses the new Selection API to programmatically deselect
+     * the text displayed by a tooltip. There are some cases where the tooltip
+     * text will be selected, and this isn't good because you can't select
+     * the text from Windows dialog tooltip boxes.
+     * Calling this method from within componentDidUpdate ensures that the
+     * text gets deselected.
+     * @private
      */
-    updateWindowSize = (resize_type, cursor_pos) => {
-        if (!this.isMaximized && !this.isMinimized) {
-            this.rc.resizeToCursor(resize_type, cursor_pos);
+    _deselectTooltipText = () => {
+        if (typeof window.getSelection === 'function') {
+            const sel = window.getSelection();
+            const tooltipMsg = this.state.tooltipArgs.msg;
+            let range, rangeText;
 
-            this.setState({
-                width: this.rc.width,
-                height: this.rc.height,
-                top: this.rc.top,
-                left: this.rc.left,
-            });
+            if (sel.containsNode(this.tooltipRef, false)) {
+                for(let i = 0; i < sel.rangeCount; i++) {
+                    range = sel.getRangeAt(i);
+                    rangeText = range.toString();
+
+                    if (tooltipMsg.includes(rangeText) || rangeText.includes(tooltipMsg)) {
+                        sel.removeRange(range);
+                        break;
+                    }
+                }
+            }
         }
     }
 
     /**
-     * Moves the window if it's not maximized
-     * @param {number} cursor_pos.x Cursor's x position relative to
-     * the web page.
-     * @param {number} cursor_pos.y Cursor's y position relative to
-     * the web page.
-     * @protected
+     * Resizes the window
+     * @param {number} resize_type Value from the
+     * {module:./cursor.js/cursorState} object.
+     * @param {module:cursor/CursorPos} cursor_pos
+     * @package
+     */
+    updateWindowSize = (resize_type, cursor_pos) => {
+        this.rc.resizeToCursor(resize_type, cursor_pos);
+
+        this.setState({
+            width: this.rc.width,
+            height: this.rc.height,
+            top: this.rc.top,
+            left: this.rc.left,
+        });
+    }
+
+    /**
+     * Moves the window
+     * @param {module:cursor/CursorPos} cursor_pos
+     * @package
      */
     updateWindowPosition = (cursor_pos) => {
-        if (!this.isMaximized) {
-            this.rc.moveToCursor(cursor_pos);
+        this.rc.moveToCursor(cursor_pos);
 
-            this.setState({
-                top: this.rc.top,
-                left: this.rc.left,
-            });
-        }
+        this.setState({
+            top: this.rc.top,
+            left: this.rc.left,
+        });
     }
 
     /**
      * @param {boolean} new_focus True if the window has mouse focus,
      * false otherwise.
-     * @protected
+     * @package
      */
     updateWindowFocus = (new_focus) => {
+        if (new_focus) {
+            if (this.props.onFocus) this.props.onFocus();
+        } else {
+            if (this.props.onBlur) this.props.onBlur();
+        }
+
         this.setState({
             hasFocus: new_focus
         });
     }
 
     /**
-     * Update the dialog's z-index CSS property.
      * @param {number} new_zindex The new z-index property of the window.
-     * @protected
+     * @package
      */
     updateWindowZIndex = (new_zindex) => {
         this.setState({
@@ -295,11 +383,8 @@ export default class Win32Dialog extends React.Component {
      * Should be called by the window manager, right
      * before the window starts moving (when the user clicks on the
      * titlebar, but before they drag the mouse).
-     * @param {number} cursor_pos.x Cursor's x position relative to
-     * the web page.
-     * @param {number} cursor_pos.y Cursor's y position relative to
-     * the web page.
-     * @protected
+     * @param {module:cursor/CursorPos} cursor_pos
+     * @package
      */
     moveBegin = (cursor_pos) => {
         this.rc.setCursorOffset(cursor_pos);
@@ -308,7 +393,7 @@ export default class Win32Dialog extends React.Component {
     /**
      * Should be called by the window manager, after
      * the window stops moving (when the user releases the mouse).
-     * @protected
+     * @package
      */
     moveEnd = () => {
         this.rc.moveWithinViewport();
@@ -320,11 +405,8 @@ export default class Win32Dialog extends React.Component {
 
     /**
      * Checks whether the cursor is on top of the dialog's border or not.
-     * @param {number} cursor_pos.x Cursor's x position relative to
-     * the web page.
-     * @param {number} cursor_pos.y Cursor's y position relative to
-     * the web page.
-     * @protected
+     * @param {module:cursor/CursorPos} cursor_pos
+     * @package
      */
     getCursorState = (cursor_pos) => {
         return this.rc.getCursorResizeState(cursor_pos);
@@ -332,35 +414,54 @@ export default class Win32Dialog extends React.Component {
 
     /**
      * Shows the tooltip of the button that's underneath the cursor.
-     * @param {number} cursor_pos.x Cursor's x position relative to
-     * the web page.
-     * @param {number} cursor_pos.y Cursor's y position relative to
-     * the web page.
-     * @protected
+     * @param {module:cursor/CursorPos} cursor_pos The tooltip will
+     * appear right underneath the cursor's position
+     * @package
      */
     showTooltip = (cursor_pos) => {
-        if (this.hoverTitlebarButton !== -1) {
-            const tooltipMessages = ['Minimize', 'Maximize', 'Close'];
+        let res = false;
+
+        if (this.hoverTitlebarButton !== NO_VALUE) {
+            let idx = this.hoverTitlebarButton;
 
             this.tooltipTitlebarButton = this.hoverTitlebarButton;
 
+            if (this.isMaximized && this.hoverTitlebarButton === titlebarButtons.maximize) {
+                //if the window is maximized, and the mouse is hovering on the maximize button,
+                //then the text on the tooltip should be 'Restore Down'
+                idx = 3;
+            }
+
             this.setState({
                 tooltipArgs: {
-                    msg: tooltipMessages[this.hoverTitlebarButton],
+                    msg: Win32Dialog.tooltipMessages[idx],
                     position: cursor_pos,
                 }
             });
+
+            res = true;
+        } else if (!this.cursorOnTitlebarButtons && this.isTitleOverflowing()) {
+            this.setState({
+                tooltipArgs: {
+                    msg: this.props.title,
+                    position: cursor_pos,
+                }
+            });
+
+            res = true;
         }
+
+        return res;
     }
 
     /**
      * Closes the dialog's open tooltip (if it's open).
-     * @protected
+     * @package
      */
     closeTooltip = () => {
-        this.setState((prevState, props) => {
+        this.setState((prevState) => {
             if (prevState.tooltipArgs.position) {
-                this.tooltipTitlebarButton = -1;
+                this.tooltipTitlebarButton = NO_VALUE;
                 return {
                     tooltipArgs: {
                         msg: '',
@@ -373,11 +474,37 @@ export default class Win32Dialog extends React.Component {
     }
 
     /**
+     * Returns true if the dialog title is longer than the
+     * titlebar's width and is truncated:
+     * ┌──────────────────┐
+     * │ React Win32 d... │
+     * ├──────────────────┤
+     * │                  │
+     * │                  │
+     * 
+     * False otherwise:
+     * ┌────────────────────────────┐
+     * │ React Win32 dialog box     │
+     * ├────────────────────────────┤
+     * │                            │
+     * │                            │
+     * @package
+     */
+    isTitleOverflowing = () => {
+        if (this.titleRef) {
+            if (this.titleRef.current.scrollWidth > this.titleRef.current.clientWidth)
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Pushes the titlebar button that has the mouse on top of it.
-     * @protected
+     * @package
      */
     pushTitlebarButton = () => {
-        if (this.hoverTitlebarButton !== -1) {
+        if (this.hoverTitlebarButton !== NO_VALUE) {
             this.setState({
                 activeTitlebarButton: this.hoverTitlebarButton
             });
@@ -388,13 +515,13 @@ export default class Win32Dialog extends React.Component {
 
     /**
      * Releases the currently pushed titlebar button.
-     * @protected
+     * @package
      */
     releaseTitlebarButton = () => {
         this.setState((prevState, props) => {
-            if (prevState.activeTitlebarButton !== -1) {
+            if (prevState.activeTitlebarButton !== NO_VALUE) {
                 return {
-                    activeTitlebarButton: -1
+                    activeTitlebarButton: NO_VALUE
                 };
             }
             return null;
@@ -402,13 +529,12 @@ export default class Win32Dialog extends React.Component {
     }
 
     /**
-     * Handles the actions that happen after clicking a titlebar button.
      * @param {number} button Legal values are the values from the
      * titlebarButtons object.
-     * @protected
+     * @package
      */
     handleTitlebarButtonClick = (button) => {
-        let icon;
+        let icon, noBorder;
 
         switch (button) {
         case titlebarButtons.minimize:
@@ -419,8 +545,7 @@ export default class Win32Dialog extends React.Component {
             this.isMinimized = !this.isMinimized;
 
             if (this.isMinimized) {
-                this.oldRect.width = this.rc.width;
-                this.oldRect.height = this.rc.height;
+                this._cacheDialogRect();
 
                 this.rc.resizeToCursor(cursorState.bottomright, {
                     x: this.rc.left + this.rc.minWidth,
@@ -428,8 +553,8 @@ export default class Win32Dialog extends React.Component {
                 });
             } else {
                 this.rc.resizeToCursor(cursorState.bottomright, {
-                    x: this.rc.left + this.oldRect.width,
-                    y: this.rc.top + this.oldRect.height
+                    x: this.rc.left + this.rcCache.width,
+                    y: this.rc.top + this.rcCache.height
                 });
             }
 
@@ -448,12 +573,7 @@ export default class Win32Dialog extends React.Component {
             this.isMaximized = !this.isMaximized;
 
             if (this.isMaximized) {
-
-                this.oldRect.width = this.rc.width;
-                this.oldRect.height = this.rc.height;
-                this.oldRect.top = this.rc.top - window.scrollY;
-                this.oldRect.left = this.rc.left - window.scrollX;
-
+                this._cacheDialogRect();
 
                 this.rc.resizeToCursor(cursorState.topleft, {
                     x: 1,
@@ -464,18 +584,20 @@ export default class Win32Dialog extends React.Component {
                     y: window.innerHeight - 1
                 });
 
+                noBorder = true;
                 icon = defaultRestoreIcon;
             } else {
 
                 this.rc.resizeToCursor(cursorState.topleft, {
-                    x: this.oldRect.left,
-                    y: this.oldRect.top
+                    x: this.rcCache.left,
+                    y: this.rcCache.top
                 });
                 this.rc.resizeToCursor(cursorState.bottomright, {
-                    x: this.oldRect.left + this.oldRect.width,
-                    y: this.oldRect.top + this.oldRect.height
+                    x: this.rcCache.left + this.rcCache.width,
+                    y: this.rcCache.top + this.rcCache.height
                 });
 
+                noBorder = false;
                 icon = defaultMaximizeIcon;
             }
 
@@ -484,11 +606,14 @@ export default class Win32Dialog extends React.Component {
                 height: this.rc.height,
                 top: this.rc.top,
                 left: this.rc.left,
+                noBorder: noBorder,
                 maximizeIcon: icon
             });
             break;
         case titlebarButtons.close:
-            alert("Close not implemented yet :)");
+            if (this.props.onExit) {
+                this.props.onExit();
+            }
             break;
         }
     }
@@ -499,6 +624,7 @@ export default class Win32Dialog extends React.Component {
             tooltipArgs,
             activeTitlebarButton,
             hasFocus,
+            noBorder,
             ...borderStyle
         } = this.state;
 
@@ -510,9 +636,14 @@ export default class Win32Dialog extends React.Component {
             titlebarClasses += ' react-win32dialog-titlebar-focused';
         }
 
+        if (noBorder) {
+            borderClasses += ' react-win32dialog-maximized';
+            titlebarClasses += ' react-win32dialog-maximized';
+        }
+
         let toggledButtons = [ false, false, false ];
 
-        if (activeTitlebarButton !== -1)
+        if (activeTitlebarButton !== NO_VALUE)
             toggledButtons[activeTitlebarButton] = true;
 
         return (
@@ -534,7 +665,6 @@ export default class Win32Dialog extends React.Component {
                 <div
                     onMouseEnter={() => this.cursorOnTitlebar = true}
                     onMouseLeave={() => this.cursorOnTitlebar = false}
-                    onDoubleClick={this._onTitlebarDoubleClick}
                     className={titlebarClasses}
                     onContextMenu={(ev) => ev.preventDefault()}
                 >
@@ -547,7 +677,7 @@ export default class Win32Dialog extends React.Component {
                         className='react-win32dialog-titlebar-icon'
                     />
 
-                    <span>{this.props.title}</span>
+                    <span ref={this.titleRef}>{this.props.title}</span>
 
                     <div
                         className='react-win32dialog-titlebar-buttons'
@@ -557,19 +687,19 @@ export default class Win32Dialog extends React.Component {
                         <TitlebarButton
                             icon={defaultMinimizeIcon}
                             onEnter={() => this.hoverTitlebarButton = titlebarButtons.minimize}
-                            onLeave={() => this.hoverTitlebarButton = -1}
+                            onLeave={() => this.hoverTitlebarButton = NO_VALUE}
                             toggled={toggledButtons[titlebarButtons.minimize]}
                         />
                         <TitlebarButton
                             icon={maximizeIcon}
                             onEnter={() => this.hoverTitlebarButton = titlebarButtons.maximize}
-                            onLeave={() => this.hoverTitlebarButton = -1}
+                            onLeave={() => this.hoverTitlebarButton = NO_VALUE}
                             toggled={toggledButtons[titlebarButtons.maximize]}
                         />
                         <TitlebarButton
                             icon={defaultCloseIcon}
                             onEnter={() => this.hoverTitlebarButton = titlebarButtons.close}
-                            onLeave={() => this.hoverTitlebarButton = -1}
+                            onLeave={() => this.hoverTitlebarButton = NO_VALUE}
                             toggled={toggledButtons[titlebarButtons.close]}
                         />
                     </div>

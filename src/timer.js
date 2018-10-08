@@ -1,3 +1,6 @@
+/**
+ * @module timer
+ */
 'use strict';
 
 export default class Timer {

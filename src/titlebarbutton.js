@@ -1,3 +1,6 @@
+/**
+ * @module titlebarbutton
+ */
 'use strict';
 
 import React from 'react';

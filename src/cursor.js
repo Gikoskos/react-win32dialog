@@ -1,8 +1,9 @@
+/**
+ * @module cursor
+ */
 'use strict';
 
-/**
- * @alias cursor:resizeState
- */
+
 const cursorState = {
     regular: 0,
     bottom: 1,
@@ -16,16 +17,26 @@ const cursorState = {
 };
 
 const cursorStyle = [
-    "react-win32dialog-cursor-default",
-    "react-win32dialog-cursor-s-resize",
-    "react-win32dialog-cursor-se-resize",
-    "react-win32dialog-cursor-sw-resize",
-    "react-win32dialog-cursor-n-resize",
-    "react-win32dialog-cursor-ne-resize",
-    "react-win32dialog-cursor-nw-resize",
-    "react-win32dialog-cursor-e-resize",
-    "react-win32dialog-cursor-w-resize",
+    "default",
+    "s-resize",
+    "se-resize",
+    "sw-resize",
+    "n-resize",
+    "ne-resize",
+    "nw-resize",
+    "e-resize",
+    "w-resize",
 ];
+
+const cursorStyleClasses = cursorStyle.map(i => 'react-win32dialog-cursor-' + i)
+
+/**
+ * @typedef {Object} CursorPos
+ * @property {number} x Cursor's x position relative to
+ * the web page.
+ * @property {number} y Cursor's y position relative to
+ * the web page.
+ */
 
 const getCursorPos = (ev) => ({
     x: ev.clientX + window.scrollX,
@@ -33,10 +44,11 @@ const getCursorPos = (ev) => ({
 });
 
 const setGlobalCursorStyle = (new_cursor, old_cursor) => {
-    if (old_cursor)
-        document.body.classList.toggle(cursorStyle[old_cursor]);
+    /*if (old_cursor)
+        document.body.classList.toggle(cursorStyleClasses[old_cursor]);
 
-    document.body.classList.toggle(cursorStyle[new_cursor]);
+    document.body.classList.toggle(cursorStyleClasses[new_cursor]);*/
+    document.body.style.cursor = cursorStyle[new_cursor];
 };
 
 

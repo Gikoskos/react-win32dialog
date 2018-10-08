@@ -1,18 +1,20 @@
+/**
+ * @module tooltip
+ */
 'use strict';
 
 import React from 'react';
 
-
-
 /**
- * The tooltip appears right underneath the mouse pointer, so its position in the y axis
- * is the same as the pointer's if you add the cursor's height.
- *  |\
- *  | \
- *  |  \
- *  |   \
- *  |_  _\
- *   _\_\_______________
+ * The tooltip appears right underneath the mouse pointer, so its position
+ * in the y axis is computed if you the cursor's height to the cursor's y position.
+ *             _
+ *  |\         |
+ *  | \        |
+ *  |  \  cursorHeight
+ *  |   \      |
+ *  |_  _\     |
+ *   _\_\______|________
  *  |                   |
  *  |   T o o l t i p   |
  *  |___________________|

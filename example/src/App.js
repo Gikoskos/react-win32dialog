@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from 'react';
+import React, { Component } from 'react';
 
 import Win32Dialog from 'react-win32dialog';
 
@@ -68,24 +68,22 @@ export default class App extends Component {
         };
 
         return (
-            <Fragment>
-                <div style={styles.container}>
-                    <Win32Dialog {...window1Opts}>
-                        <div style={styles.internalBorder}>
-                            <div style={styles.msg1}>
-                                {this.state.msg1}
-                            </div>
+            <div style={styles.container}>
+                <Win32Dialog {...window1Opts}>
+                    <div style={styles.internalBorder}>
+                        <div style={styles.msg1}>
+                            {this.state.msg1}
                         </div>
-                    </Win32Dialog>
-                    <Win32Dialog {...window2Opts}>
-                        <div style={styles.internalBorder}>
-                            <div style={styles.msg2}>
-                                {this.state.msg2}
-                            </div>
+                    </div>
+                </Win32Dialog>
+                <Win32Dialog {...window2Opts}>
+                    <div style={styles.internalBorder}>
+                        <div style={styles.msg2}>
+                            {this.state.msg2}
                         </div>
-                    </Win32Dialog>
-                </div>
-            </Fragment>
+                    </div>
+                </Win32Dialog>
+            </div>
         )
     }
 }

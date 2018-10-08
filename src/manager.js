@@ -1,3 +1,6 @@
+/**
+ * @module manager
+ */
 'use strict';
 
 import {
@@ -5,11 +8,21 @@ import {
     getCursorPos,
     setGlobalCursorStyle,
 } from './cursor';
-import Timer from './timer.js';
+import { titlebarButtons } from './titlebarbutton';
+import { NO_VALUE } from './globals';
+import Timer from './timer';
 
 
-const NO_WINDOW = -1;
-
+/**
+ * The names of the methods and properties that should be implemented by
+ * dialogs that are used from the WindowManager observer class.
+ *
+ * This object is used purely for testing purposes. 
+ * Objects that are registered to the window manager can choose on whether they want
+ * the manager to perform a runtime validity check on them or not, to see whether
+ * they inherit all the properties and methods that the manager requires.
+ * See the registerWindow method.
+ */
 const DialogInterface = {
     methods: [
         'showTooltip',
@@ -23,10 +36,10 @@ const DialogInterface = {
         'moveEnd',
         'pushTitlebarButton',
         'releaseTitlebarButton',
-        'handleTitlebarButtonClick'
+        'handleTitlebarButtonClick',
+        'isTitleOverflowing'
     ],
     properties: [
-        'cursorOnTitlebarButtons',
         'tooltipTitlebarButton',
         'hoverTitlebarButton',
         'cursorOnWindow',
@@ -35,10 +48,20 @@ const DialogInterface = {
         'isMaximized',
         'isMinimized'
     ],
+    /**
+     * This method performs a runtime check to see if the
+     * given parameter is an object that implements the Dialog symbols.
+     * Only for testing purposes.
+     */
     implements: (obj) => {
-        const objMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(obj))
-                              .concat(Object.keys(obj).filter(item => typeof obj[item] === 'function'));
-        const objProperties = Object.keys(obj).filter(item => typeof obj[item] !== 'function');
+        const objMethods = Object
+                            .getOwnPropertyNames(Object.getPrototypeOf(obj))
+                            .concat(Object
+                                    .keys(obj)
+                                    .filter(item => typeof obj[item] === 'function'));
+        const objProperties = Object
+                                .keys(obj)
+                                .filter(item => typeof obj[item] !== 'function');
 
         let notImplemented = [];    
 
@@ -64,36 +87,110 @@ const DialogInterface = {
 
 /**
  * Class that represents a lightweight window manager. This manager
- * supports dialog objects that implement the methods and properties defined
+ * supports dialog objects that implement the methods and properties declared
  * in the DialogInterface object.
+ *
+ * How it works: The manager sets 3 event listeners for basic mouse
+ * events (move, up, down) and notifies any window/dialog registered
+ * to this manager, if needed.
+ *
+ * Stacking of windows is supported by giving each window a unique z-index.
+ * Since all z-indexes are unique to each window, they also double as id's.
+ * To uniquely identify a window within the window manager, we use that window's
+ * z-index.
+ * By stacking windows on top of each other, with this method, it's guaranteed
+ * that only one window has focus at each given moment.
+ * @package
  */
 export default class WindowManager {
 
     constructor() {
+        /**
+         * Array of all windows registered to this manager.
+         * @private
+         */
         this.windows = [];
+        /**
+         * The z-index of the window that will be registered next.
+         * This _isn't_ the same as the length of the windows array, but
+         * is guaranteed to be less than or equal to it.
+         * See the register/unregister methods below.
+         * @private
+         */
         this.zIndexTop = 0;
 
+        /**
+         * The cursor's current state.
+         * @private
+         */
         this.currCursor = cursorState.regular;
+
+        /**
+         * Callback that points to the handler that is called
+         * by the mousemove event.
+         * @private
+         */
         this.moveAction = this._defaultMouseMove;
 
+        /**
+         * The cursor's position. This is currently only
+         * used for the tooltip.
+         * @private
+         */
         this.cursorPos = null;
 
-        this.activeWindow = NO_WINDOW;
+        /**
+         * The z-index of the window that is/was clicked.
+         * @private
+         */
+        this.activeWindow = NO_VALUE;
+
+        /**
+         * Takes values from {@module:titlebarbutton/titlebarButtons}
+         * @private
+         */
         this.pressedButton = -1;
+
+        /**
+         * True if the user right-clicked on the titlebar. False otherwise.
+         */
         this.rightClickTitlebar = false;
 
+        /**
+         * A tooltip appears when this timer is finished.
+         * @private
+         */
         this.showTooltipTimer = new Timer(1000, this._showTooltip);
+
+        /**
+         * The tooltip that was showed is destroyed after this timer is finished.
+         * @private
+         */
         this.closeTooltipTimer = new Timer(4000, this._resetTooltip);
-        this.windowWithVisibleTooltip = NO_WINDOW;
+
+        /**
+         * @private
+         */
+        this.windowWithVisibleTooltip = NO_VALUE;
+
+        /**
+         * @private
+         */
+        this.maximizedWindow = NO_VALUE;
 
         setGlobalCursorStyle(this.currCursor);
         window.addEventListener('mousemove', this._onMouseMove, true);
         window.addEventListener('mouseup', this._onMouseUp, true);
         window.addEventListener('mousedown', this._onMouseDown, true);
+        window.addEventListener('dblclick', this._onDoubleClick, true);
+        window.addEventListener('resize', this._onResize, false);
     }
 
-    registerWindow(w) {
-        if (DialogInterface.implements(w)) {
+    /**
+     * @package
+     */
+    registerWindow(w, checkInheritance = false) {
+        if (!checkInheritance || DialogInterface.implements(w)) {
 
             if (this.zIndexTop > 0) {
                 this.windows[this.zIndexTop - 1].updateWindowFocus(false);
@@ -112,9 +209,12 @@ export default class WindowManager {
         }
 
         console.log(`WindowManager.registerWindow error: Invalid window argument '${w}'.`);
-        return NO_WINDOW;
+        return NO_VALUE;
     }
 
+    /**
+     * @package
+     */
     unregisterWindow(zIndex) {
         if (zIndex >= 0 && zIndex < this.zIndexTop) {
 
@@ -127,6 +227,9 @@ export default class WindowManager {
         }
     }
 
+    /**
+     * @private
+     */
     _bringWindowToTop = (zIndex) => {
         const topZIndex = this.zIndexTop - 1;
         let topWindow = this.windows[zIndex];
@@ -143,6 +246,9 @@ export default class WindowManager {
         topWindow.updateWindowFocus(true);
     }
 
+    /**
+     * @private
+     */
     _resetCursor = () => {
         if (this.currCursor !== cursorState.regular) {
             setGlobalCursorStyle(cursorState.regular, this.currCursor);
@@ -150,63 +256,100 @@ export default class WindowManager {
         }
     }
 
+    /**
+     * @private
+     */
     _resetTooltip = () => {
-        if (this.windowWithVisibleTooltip !== NO_WINDOW) {
+        if (this.windowWithVisibleTooltip !== NO_VALUE) {
             this.windows[this.windowWithVisibleTooltip].closeTooltip();
             this.showTooltipTimer.cancel();
             this.closeTooltipTimer.cancel();
-            this.windowWithVisibleTooltip = NO_WINDOW;
+            this.windowWithVisibleTooltip = NO_VALUE;
         }
     }
 
+    /**
+     * @private
+     */
     _showTooltip = (zIndex) => {
-        this.windows[zIndex].showTooltip(this.cursorPos);
-        this.windowWithVisibleTooltip = zIndex;
-        this.closeTooltipTimer.start();
+        if (this.windows[zIndex].showTooltip(this.cursorPos)) {
+            this.windowWithVisibleTooltip = zIndex;
+            this.closeTooltipTimer.start();
+        }
     }
 
+    /**
+     * @private
+     */
     _handleHoverOnWindow = (ev, zIndex) => {
-        if (this.windows[zIndex].cursorOnTitlebarButtons) {
-            this._resetCursor();
-            this.cursorPos = getCursorPos(ev);
+        const win = this.windows[zIndex];
 
-            if (this.windowWithVisibleTooltip === zIndex) {
-                if (this.windows[zIndex].tooltipTitlebarButton !== this.windows[zIndex].hoverTitlebarButton) {
-                    this._resetTooltip();
-                    this._showTooltip(zIndex);
+        this.cursorPos = getCursorPos(ev);
+
+        let windowCursor = win.getCursorState(this.cursorPos);
+
+        if (!win.isMaximized && !win.isMinimized) {
+            if (windowCursor !== this.currCursor) {
+                setGlobalCursorStyle(windowCursor, this.currCursor);
+                this.currCursor = windowCursor;
+            }
+        }
+
+        if (windowCursor === cursorState.regular && win.cursorOnTitlebar) {
+            this._resetCursor();
+
+            if ((win.cursorOnTitlebarButtons &&
+                 win.hoverTitlebarButton !== NO_VALUE) ||
+                win.isTitleOverflowing()) {
+
+                if (this.windowWithVisibleTooltip === zIndex) {
+                    if (win.tooltipTitlebarButton !== win.hoverTitlebarButton) {
+                        this._resetTooltip();
+                        this._showTooltip(zIndex);
+                    }
+                } else {
+                    this.showTooltipTimer.cancel();
+                    this.showTooltipTimer.start(zIndex);
                 }
+
             } else {
                 this._resetTooltip();
-                this.showTooltipTimer.start(zIndex);
             }
         } else {
             this._resetTooltip();
-
-            let cursorState = this.windows[zIndex].getCursorState(getCursorPos(ev));
-
-            if (cursorState !== this.currCursor) {
-                setGlobalCursorStyle(cursorState, this.currCursor);
-                this.currCursor = cursorState;
-            }
         }
     }
 
+    /**
+     * @private
+     */
     _moveWindow = (ev) => {
         this.windows[this.activeWindow].updateWindowPosition(getCursorPos(ev));
     }
 
+    /**
+     * @private
+     */
     _resizeWindow = (ev) => {
         this.windows[this.activeWindow].updateWindowSize(this.currCursor, getCursorPos(ev));
     }
 
+    /**
+     * @private
+     */
     _titlebarButtonMouseMove = (ev) => {
-        if (this.windows[this.activeWindow].hoverTitlebarButton !== this.pressedButton) {
-            this.windows[this.activeWindow].releaseTitlebarButton();
+        const win = this.windows[this.activeWindow];
+
+        if (win.hoverTitlebarButton !== this.pressedButton) {
+            win.releaseTitlebarButton();
         } else {
-            this.windows[this.activeWindow].pushTitlebarButton();
+            win.pushTitlebarButton();
         }
     }
 
+    /**
+     * @private
+     */
     _defaultMouseMove = (ev) => {
         for (let i = 0; i < this.zIndexTop; i++) {
             if (this.windows[i].cursorOnWindow)
@@ -217,62 +360,79 @@ export default class WindowManager {
         this._resetCursor();
     }
 
+    /**
+     * @private
+     */
     _onMouseMove = (ev) => {
         this.moveAction(ev);
     }
 
+    /**
+     * @private
+     */
     _onMouseUp = (ev) => {
+        const win = this.windows[this.activeWindow];
+
         //handle right click mouseup events
         if (ev.button === 0) {
             if (this.moveAction === this._moveWindow) {
-                this.windows[this.activeWindow].moveEnd();
+                win.moveEnd();
             } else if (this.moveAction === this._titlebarButtonMouseMove) {
-                this.windows[this.activeWindow].releaseTitlebarButton();
-                if (this.windows[this.activeWindow].hoverTitlebarButton === this.pressedButton) {
-                    this.windows[this.activeWindow].handleTitlebarButtonClick(this.pressedButton);
+                win.releaseTitlebarButton();
+                if (win.hoverTitlebarButton === this.pressedButton) {
+                    win.handleTitlebarButtonClick(this.pressedButton);
                 }
             }
         } else if (ev.button === 2 && this.rightClickTitlebar) {
-            if (this.windows[this.activeWindow].cursorOnTitlebar)
-                console.log('menu opened');
+            if (win.cursorOnTitlebar)
+                alert('Titlebar context menu not yet implemented :)');
             this.rightClickTitlebar = false;
             ev.preventDefault();
         }
 
-        this.activeWindow = NO_WINDOW;
+        this.activeWindow = NO_VALUE;
         this.moveAction = this._defaultMouseMove;
     }
 
+    /**
+     * @private
+     */
     _onMouseDown = (ev) => {
+        let win;
+
         this.showTooltipTimer.cancel();
+        this._resetTooltip();
 
         for (let i = 0; i < this.zIndexTop; i++) {
-            if (this.windows[i].cursorOnWindow) {
+            win = this.windows[i];
+
+            if (win.cursorOnWindow) {
 
                 if (ev.button === 0) {
                     if (this.currCursor === cursorState.regular) {
 
-                        if (this.windows[i].cursorOnTitlebar) {
-                            if (this.windows[i].cursorOnTitlebarButtons) {
-                                this.windows[i].closeTooltip();
-                                this.pressedButton = this.windows[i].pushTitlebarButton();
+                        if (win.cursorOnTitlebar) {
+                            if (win.cursorOnTitlebarButtons) {
+                                this.pressedButton = win.pushTitlebarButton();
                                 this.moveAction = this._titlebarButtonMouseMove;
                             } else {
-                                if (!this.windows[i].isMaximized) {
+                                if (!win.isMaximized) {
                                     this.moveAction = this._moveWindow;
-                                    this.windows[i].moveBegin(getCursorPos(ev));
+                                    win.moveBegin(getCursorPos(ev));
                                 }
                             }
                         }
 
                     } else {
-                        if (!this.windows[i].isMaximized && !this.windows[i].isMinimized) {
+                        if (!win.isMaximized && !win.isMinimized) {
                             this.moveAction = this._resizeWindow;
                         }
                     }
-                } else if (ev.button === 2 && this.windows[i].cursorOnTitlebar) {
-                    this.rightClickTitlebar = true;
-                    this.moveAction = () => {};
+                } else if (ev.button === 2) {
+                    if (!win.cursorOnTitlebarButtons && win.cursorOnTitlebar) {
+                        this.rightClickTitlebar = true;
+                        this.moveAction = () => {};
+                    }
                 }
 
                 this.activeWindow = i;
@@ -281,7 +441,7 @@ export default class WindowManager {
             }
         }
 
-        if (this.activeWindow !== NO_WINDOW) {
+        if (this.activeWindow !== NO_VALUE) {
             this._bringWindowToTop(this.activeWindow);
             this.activeWindow = this.zIndexTop - 1;
         } else {
@@ -292,6 +452,40 @@ export default class WindowManager {
             ev.preventDefault();
     }
 
+    /**
+     * @private
+     */
+    _onDoubleClick = (ev) => {
+        let win;
+
+        this.cursorPos = getCursorPos(ev);
+
+        for (let i = 0; i < this.zIndexTop; i++) {
+            win = this.windows[i];
+
+            if (win.cursorOnTitlebar && !win.cursorOnTitlebarButtons &&
+                win.getCursorState(this.cursorPos) === cursorState.regular)
+                win.handleTitlebarButtonClick(titlebarButtons.maximize);
+        }
+    }
+
+    /**
+     * @private
+     */
+    _onResize = () => {
+        let topWin = this.windows[this.zIndexTop - 1];
+
+        if (topWin.isMaximized) {
+            topWin.updateWindowSize(cursorState.bottomright, {
+                x: window.innerWidth,
+                y: window.innerHeight
+            });
+        }
+    }
+
+    /**
+     * @package
+     */
     toString() {
         return `WindowManager = {\n` +
                `    this.zIndexTop =  ${this.zIndexTop},\n` +
