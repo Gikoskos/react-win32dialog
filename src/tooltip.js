@@ -31,6 +31,9 @@ const cursorHeight = 18;
  * Represents a tooltip as a React component.
  */
 const Tooltip = (props) => {
+    //props.position should be the position of the cursor so
+    //that the tooltip should be rendered right underneath it.
+    //If no props.position is given, then the tooltip isn't rendered.
     if (props.position) {
 
         return (

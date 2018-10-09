@@ -54,12 +54,16 @@ export default class App extends Component {
 
     render () {
         const window1Opts = {
+            width: 170,
+            height: 170,
             x: 200,
             y: 300,
             onBlur: () => this.setState({msg1: App.msg1.blur}),
             onFocus: () => this.setState({msg1: App.msg1.focus}),
             title: "Win32Dialog 1"
         }, window2Opts = {
+            width: 170,
+            height: 170,
             x: 600,
             y: 300,
             onBlur: () => this.setState({msg2: App.msg2.blur}),

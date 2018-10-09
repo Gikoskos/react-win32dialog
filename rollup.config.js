@@ -4,7 +4,6 @@ import external from 'rollup-plugin-peer-deps-external'
 import postcss from 'rollup-plugin-postcss'
 import resolve from 'rollup-plugin-node-resolve'
 import url from 'rollup-plugin-url'
-import sass from 'rollup-plugin-sass'
 
 import pkg from './package.json'
 
@@ -25,7 +24,9 @@ export default {
     plugins: [
         external(),
         postcss({
-            modules: true
+            inject: true,
+            use: ['sass'],
+            minimize: true,
         }),
         url(),
         babel({
@@ -34,8 +35,5 @@ export default {
         }),
         resolve(),
         commonjs(),
-        sass({
-            insert: true
-        }),
     ]
 }

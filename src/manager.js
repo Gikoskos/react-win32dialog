@@ -32,15 +32,15 @@ const DialogInterface = {
         'updateWindowSize',
         'updateWindowPosition',
         'getCursorState',
-        'moveBegin',
-        'moveEnd',
+        'setupCursorOffset',
+        'fixOffScreenMove',
         'pushTitlebarButton',
         'releaseTitlebarButton',
         'handleTitlebarButtonClick',
         'isTitleOverflowing'
     ],
     properties: [
-        'tooltipTitlebarButton',
+        'tooltipOnTitlebarButton',
         'hoverTitlebarButton',
         'cursorOnWindow',
         'cursorOnTitlebar',
@@ -91,15 +91,16 @@ const DialogInterface = {
  * in the DialogInterface object.
  *
  * How it works: The manager sets 3 event listeners for basic mouse
- * events (move, up, down) and notifies any window/dialog registered
- * to this manager, if needed.
+ * events (move, up, down) and notifies any window registered
+ * to this manager, if needed, using the observer/listener pattern. With
+ * this design, the windows won't react to anything by themselves. They wait
+ * for the manager to instruct them to change state.
  *
  * Stacking of windows is supported by giving each window a unique z-index.
- * Since all z-indexes are unique to each window, they also double as id's.
  * To uniquely identify a window within the window manager, we use that window's
  * z-index.
- * By stacking windows on top of each other, with this method, it's guaranteed
- * that only one window has focus at each given moment.
+ * By stacking windows on top of each other, it's guaranteed that only one
+ * window has focus at each given moment.
  * @package
  */
 export default class WindowManager {
@@ -187,6 +188,8 @@ export default class WindowManager {
     }
 
     /**
+     * @param {module:dialog/Win32Dialog} w
+     * @param {boolean} checkInheritance
      * @package
      */
     registerWindow(w, checkInheritance = false) {
@@ -213,6 +216,7 @@ export default class WindowManager {
     }
 
     /**
+     * @param {number} zIndex The window's z-index.
      * @package
      */
     unregisterWindow(zIndex) {
@@ -228,6 +232,7 @@ export default class WindowManager {
     }
 
     /**
+     * @param {number} zIndex The window's z-index.
      * @private
      */
     _bringWindowToTop = (zIndex) => {
@@ -263,7 +268,6 @@ export default class WindowManager {
         this.showTooltipTimer.cancel();
         this.closeTooltipTimer.cancel();
 
-        
         if (this.windowWithVisibleTooltip !== NO_VALUE) {
             this.windows[this.windowWithVisibleTooltip].closeTooltip();
             this.windowWithVisibleTooltip = NO_VALUE;
@@ -345,7 +349,7 @@ export default class WindowManager {
      * @private
      */
     _resizeWindow = (ev) => {
-        this.windows[this.activeWindow].updateWindowSize(this.currCursor, getCursorPos(ev));
+        this.windows[this.activeWindow].updateWindowSize(getCursorPos(ev), this.currCursor);
     }
 
     /**
@@ -390,7 +394,7 @@ export default class WindowManager {
         //handle right click mouseup events
         if (ev.button === 0) {
             if (this.moveAction === this._moveWindow) {
-                win.moveEnd();
+                win.fixOffScreenMove();
             } else if (this.moveAction === this._titlebarButtonMouseMove) {
                 win.releaseTitlebarButton();
                 if (win.hoverTitlebarButton === this.pressedButton) {
@@ -432,7 +436,7 @@ export default class WindowManager {
                             } else {
                                 if (!win.isMaximized) {
                                     this.moveAction = this._moveWindow;
-                                    win.moveBegin(getCursorPos(ev));
+                                    win.setupCursorOffset(getCursorPos(ev));
                                 }
                             }
                         }
@@ -440,6 +444,7 @@ export default class WindowManager {
                     } else {
                         if (!win.isMaximized && !win.isMinimized) {
                             this.moveAction = this._resizeWindow;
+                            win.setupCursorOffset(getCursorPos(ev), this.currCursor);
                         }
                     }
                 } else if (ev.button === 2) {
@@ -491,10 +496,10 @@ export default class WindowManager {
         let topWin = this.windows[this.zIndexTop - 1];
 
         if (topWin.isMaximized) {
-            topWin.updateWindowSize(cursorState.bottomright, {
+            topWin.updateWindowSize({
                 x: window.innerWidth,
                 y: window.innerHeight
-            });
+            }, cursorState.bottomright);
         }
     }
 
