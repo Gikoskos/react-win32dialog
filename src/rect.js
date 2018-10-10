@@ -52,9 +52,9 @@ export default class DialogRect {
 
     /**
      * Updates the rect's dimensions.
-     * @private
+     * @package
      */
-    _update(x, y, w, h) {
+    update(x, y, w, h) {
         if (x !== undefined)
             this.left = x;
 
@@ -226,7 +226,7 @@ export default class DialogRect {
             break;
         }
 
-        this._update(new_left, new_top, new_width, new_height);
+        this.update(new_left, new_top, new_width, new_height);
     }
 
     /**
@@ -390,8 +390,8 @@ export default class DialogRect {
      * @package
      */
     moveToCursor(cursor_pos) {
-        this._update(cursor_pos.x + this.cursorOffset.x,
-                     cursor_pos.y + this.cursorOffset.y);
+        this.update(cursor_pos.x + this.cursorOffset.x,
+                    cursor_pos.y + this.cursorOffset.y);
     }
 
     /**
@@ -477,8 +477,8 @@ export default class DialogRect {
      * @package
      */
     moveWithinViewport() {
-        this._update((this.left <= 0) ? 1 : this.left,
-                     (this.top <= 0) ? 1 : this.top);
+        this.update((this.left <= 0) ? 1 : this.left,
+                    (this.top <= 0) ? 1 : this.top);
     }
 
     /**

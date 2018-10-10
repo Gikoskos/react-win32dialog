@@ -110,6 +110,8 @@ export default class WindowManager {
     constructor() {
         /**
          * Array of all windows registered to this manager.
+         * The windows in this array, act as listeners to the commands
+         * of the window manager.
          * @private
          */
         this.windows = [];
@@ -194,6 +196,11 @@ export default class WindowManager {
     }
 
     /**
+     * Registers the window w to this window manager instance, and
+     * brings it to the top of the window stack with focus.
+     * If the array doesn't have any empty positions (possibly from
+     * other windows that unregistered), then we change the array's
+     * size by pushing the window on the last position.
      * @param {module:dialog/Win32Dialog} w
      * @param {boolean} checkInheritance
      * @package
@@ -222,6 +229,11 @@ export default class WindowManager {
     }
 
     /**
+     * If the zIndex window is registered to this window manager, then
+     * bring it to the top and remove it from the listener array.
+     * Note that the listener array size _doesn't_ change (it doesn't get
+     * smaller). The array remains the same but the zIndexTop property goes
+     * down.
      * @param {number} zIndex
      * @package
      */
@@ -238,10 +250,12 @@ export default class WindowManager {
     }
 
     /**
+     * Bring the zIndex window to the top of the stack
+     * and change the z-indexes of the other windows accordingly.
      * @param {number} zIndex
      * @private
      */
-    _bringWindowToTop = (zIndex) => {
+    _bringWindowToTop(zIndex) {
         const topZIndex = this.zIndexTop - 1;
         let topWindow = this.windows[zIndex];
 
@@ -262,7 +276,7 @@ export default class WindowManager {
      * set to the default.
      * @private
      */
-    _resetCursor = () => {
+    _resetCursor() {
         if (this.currCursor !== cursorState.regular) {
             setGlobalCursorStyle(cursorState.regular, this.currCursor);
             this.currCursor = cursorState.regular;
@@ -306,7 +320,7 @@ export default class WindowManager {
      * As point of reference I used the classic style windows in Windows 7.
      * @private
      */
-    _handleHoverOnWindow = (ev, zIndex) => {
+    _handleHoverOnWindow (ev, zIndex) {
         //cache the current window's lookup
         const win = this.windows[zIndex];
 
@@ -386,7 +400,7 @@ export default class WindowManager {
      * mouse move event occurs.
      * @private
      */
-    _moveWindow = (ev) => {
+    _moveWindow(ev) {
         this.windows[this.activeWindow].updateWindowPosition(getCursorPos(ev));
     }
 
@@ -395,7 +409,7 @@ export default class WindowManager {
      * mouse move event occurs.
      * @private
      */
-    _resizeWindow = (ev) => {
+    _resizeWindow(ev) {
         this.windows[this.activeWindow].updateWindowSize(getCursorPos(ev), this.currCursor);
     }
 
@@ -404,7 +418,7 @@ export default class WindowManager {
      * is clicked on any of the titlebar buttons, of a window.
      * @private
      */
-    _titlebarButtonMouseMove = () => {
+    _titlebarButtonMouseMove() {
         const win = this.windows[this.activeWindow];
 
         if (win.hoverTitlebarButton !== this.pressedButton) {
@@ -419,7 +433,7 @@ export default class WindowManager {
      * active.
      * @private
      */
-    _defaultMouseMove = (ev) => {
+    _defaultMouseMove(ev) {
         //check if the cursor is hovering over any of the windows
         //registered to this window manager
         for (let i = 0; i < this.zIndexTop; i++) {
@@ -546,13 +560,13 @@ export default class WindowManager {
 
         let win;
 
-        this.cursorPos = getCursorPos(ev);
+        //this.cursorPos = getCursorPos(ev);
 
         for (let i = 0; i < this.zIndexTop; i++) {
             win = this.windows[i];
 
-            if (win.cursorOnTitlebar && !win.cursorOnTitlebarButtons &&
-                win.getCursorState(this.cursorPos) === cursorState.regular) {
+            if (win.cursorOnTitlebar && !win.cursorOnTitlebarButtons) {
+                this._resetCursor();
                 win.handleTitlebarButtonClick(titlebarButtons.maximize);
             }
         }
