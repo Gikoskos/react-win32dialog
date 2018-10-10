@@ -34,18 +34,18 @@ const Tooltip = (props) => {
     //props.position should be the position of the cursor so
     //that the tooltip should be rendered right underneath it.
     //If no props.position is given, then the tooltip isn't rendered.
-    if (props.position) {
-
+    if (props.args.position) {
         return (
             <div
                 className='react-win32dialog-tooltip'
                 style={{
-                    left: props.position.x,
-                    top: props.position.y + cursorHeight,
+                    left: props.args.position.x,
+                    top: props.args.position.y + cursorHeight,
+                    zIndex: props.args.zIndex
                 }}
                 ref={props.getRef}
             >
-                {props.msg}
+                {props.args.msg}
             </div>
         );
     } else {

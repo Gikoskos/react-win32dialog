@@ -41,6 +41,7 @@ const DialogInterface = {
     ],
     properties: [
         'tooltipOnTitlebarButton',
+        'tooltipOnTitle',
         'hoverTitlebarButton',
         'cursorOnWindow',
         'cursorOnTitlebar',
@@ -128,7 +129,8 @@ export default class WindowManager {
 
         /**
          * Callback that points to the handler that is called
-         * by the mousemove event.
+         * by the mousemove event. The 3 handlers for the mousemove event
+         * are _defaultMouseMove, _resizeWindow and _moveWindow.
          * @private
          */
         this.moveAction = this._defaultMouseMove;
@@ -139,12 +141,6 @@ export default class WindowManager {
          * @private
          */
         this.cursorPos = null;
-
-        /**
-         * The z-index of the window that is/was clicked.
-         * @private
-         */
-        this.activeWindow = NO_VALUE;
 
         /**
          * Takes values from {@module:titlebarbutton/titlebarButtons}
@@ -170,14 +166,23 @@ export default class WindowManager {
         this.closeTooltipTimer = new Timer(4000, this._resetTooltip);
 
         /**
+         * The z-index of the window that has a visible tooltip.
          * @private
          */
         this.windowWithVisibleTooltip = NO_VALUE;
 
         /**
+         * The z-index of the window that is currently maximized.
          * @private
          */
         this.maximizedWindow = NO_VALUE;
+
+        /**
+         * The z-index of the window that is currently active. The active
+         * window is in the middle of an action such as resizing/moving.
+         * @private
+         */
+        this.activeWindow = NO_VALUE;
 
         setGlobalCursorStyle(this.currCursor);
         window.addEventListener('mousemove', this._onMouseMove, true);
@@ -193,7 +198,7 @@ export default class WindowManager {
      * @package
      */
     registerWindow(w, checkInheritance = false) {
-        if (!checkInheritance || DialogInterface.implements(w)) {
+        if (!checkInheritance /*|| DialogInterface.implements(w)*/) {
 
             if (this.zIndexTop > 0) {
                 this.windows[this.zIndexTop - 1].updateWindowFocus(false);
@@ -216,7 +221,7 @@ export default class WindowManager {
     }
 
     /**
-     * @param {number} zIndex The window's z-index.
+     * @param {number} zIndex
      * @package
      */
     unregisterWindow(zIndex) {
@@ -232,7 +237,7 @@ export default class WindowManager {
     }
 
     /**
-     * @param {number} zIndex The window's z-index.
+     * @param {number} zIndex
      * @private
      */
     _bringWindowToTop = (zIndex) => {
@@ -252,6 +257,8 @@ export default class WindowManager {
     }
 
     /**
+     * Sets the global cursor to the default, if it's not already
+     * set to the default.
      * @private
      */
     _resetCursor = () => {
@@ -262,6 +269,8 @@ export default class WindowManager {
     }
 
     /**
+     * Closes the open tooltip, if there is one, and cancels all
+     * tooltip timers.
      * @private
      */
     _resetTooltip = () => {
@@ -275,25 +284,39 @@ export default class WindowManager {
     }
 
     /**
+     * Shows the tooltip and starts the timer that will close it.
      * @private
      */
     _showTooltip = (zIndex) => {
-        if (this.windows[zIndex].showTooltip(this.cursorPos)) {
+        if (this.windows[zIndex].showTooltip(this.cursorPos, this.zIndexTop)) {
             this.windowWithVisibleTooltip = zIndex;
             this.closeTooltipTimer.start();
         }
     }
 
     /**
+     * Handler that is called when the mouse is hovering on any
+     * of the windows registered to this window manager.
+     *
+     * The behavior of this handler is programmed to be as close
+     * as possible to the behavior of actual dialog boxes from
+     * the classic style of Windows.
+     *
+     * As point of reference I used the classic style windows in Windows 7.
      * @private
      */
     _handleHoverOnWindow = (ev, zIndex) => {
+        //cache the current window's lookup
         const win = this.windows[zIndex];
 
+        //store the current position of the cursor
         this.cursorPos = getCursorPos(ev);
 
+        //get the position of the cursor relative to the window
         let windowCursor = win.getCursorState(this.cursorPos);
 
+        //change the cursor's style, if it's hovering on any of the
+        //borders and it's not in maximized/minimized state
         if (!win.isMaximized && !win.isMinimized) {
             if (windowCursor !== this.currCursor) {
                 setGlobalCursorStyle(windowCursor, this.currCursor);
@@ -301,13 +324,24 @@ export default class WindowManager {
             }
         }
 
+        //if the cursor isn't hovering on the window's borders, it might
+        //be hovering on an area that has a tooltip
         if (windowCursor === cursorState.regular && win.cursorOnTitlebar) {
+            //first make sure to reset the cursor back to the default
             this._resetCursor();
 
-
+            //there are three possible cases:
+            //   i) the cursor is hovering on top of the titlebar buttons
+            //  ii) the cursor is hovering on top of the titlebar and the
+            //      titlebar's title is truncated
+            // iii) the cursor is hovering on top of the titlebar and the
+            //      titlebar's title is fully visible
             if (!win.cursorOnTitlebarButtons && win.isTitleOverflowing()) {
+                //second case where the pointer isn't above any of the titlebar
+                //buttons, and the window title isn't fully displayed (i.e.
+                //truncated due to the window's size being too small possibly)
 
-                if (this.windowWithVisibleTooltip === zIndex) {    
+                if (this.windowWithVisibleTooltip === zIndex) {
                     if (!win.tooltipOnTitle) {
                         this._resetTooltip();
                         this._showTooltip(zIndex);
@@ -317,7 +351,13 @@ export default class WindowManager {
                     this.showTooltipTimer.start(zIndex);
                 }
 
-            } else {
+            } else if (win.cursorOnTitlebarButtons) {
+                //First case where the pointer is hovering on the titlebar buttons.
+                //Due to the design of the tooltip mechanics, this can also
+                //be used for the third case. In that case the tooltip timer will
+                //fire up but the tooltip won't get displayed. The Win32Dialog
+                //class will see that the cursor isn't hovering on any of the buttons,
+                //so it won't display the tooltip.
                 if (win.hoverTitlebarButton === NO_VALUE) {
                     win.hoverTitlebarButton = titlebarButtons.maximize;
                 }
@@ -331,6 +371,8 @@ export default class WindowManager {
                     this._resetTooltip();
                     this.showTooltipTimer.start(zIndex);
                 }
+            } else {
+                this._resetTooltip();
             }
 
         } else {
@@ -339,6 +381,8 @@ export default class WindowManager {
     }
 
     /**
+     * Is called when there's an active moving window, and a
+     * mouse move event occurs.
      * @private
      */
     _moveWindow = (ev) => {
@@ -346,6 +390,8 @@ export default class WindowManager {
     }
 
     /**
+     * Is called when there's an active resizing window, and a
+     * mouse move event occurs.
      * @private
      */
     _resizeWindow = (ev) => {
@@ -353,9 +399,11 @@ export default class WindowManager {
     }
 
     /**
+     * Is called when there's a mouse move event while the pointer
+     * is clicked on any of the titlebar buttons, of a window.
      * @private
      */
-    _titlebarButtonMouseMove = (ev) => {
+    _titlebarButtonMouseMove = () => {
         const win = this.windows[this.activeWindow];
 
         if (win.hoverTitlebarButton !== this.pressedButton) {
@@ -366,19 +414,30 @@ export default class WindowManager {
     }
 
     /**
+     * Is called when there's a mouse move event and no windows are
+     * active.
      * @private
      */
     _defaultMouseMove = (ev) => {
+        //check if the cursor is hovering over any of the windows
+        //registered to this window manager
         for (let i = 0; i < this.zIndexTop; i++) {
+            //if we found a window that has the pointer on top
+            //of it, then we return with the hover handler
             if (this.windows[i].cursorOnWindow)
                 return this._handleHoverOnWindow(ev, i);
         }
 
+        //reset the tooltip and cursor states if the pointer isn't
+        //hovering over any windows
         this._resetTooltip();
         this._resetCursor();
     }
 
     /**
+     * Stub handler that is called by the mouse move event.
+     * It calls the actual handler that is used at the point
+     * the event occured.
      * @private
      */
     _onMouseMove = (ev) => {
@@ -391,7 +450,7 @@ export default class WindowManager {
     _onMouseUp = (ev) => {
         const win = this.windows[this.activeWindow];
 
-        //handle right click mouseup events
+        //handle left click mouseup events
         if (ev.button === 0) {
             if (this.moveAction === this._moveWindow) {
                 win.fixOffScreenMove();
@@ -472,9 +531,18 @@ export default class WindowManager {
     }
 
     /**
+     * Handler that is called on the double click event.
+     * Checks if the double click event occured on the titlebar
+     * area of any of the windows registered to this window manager.
+     * In that case, it calls the maximize button handler for that
+     * window.
      * @private
      */
     _onDoubleClick = (ev) => {
+        if (ev.button !== 0) {
+            return;
+        }
+
         let win;
 
         this.cursorPos = getCursorPos(ev);
@@ -490,6 +558,7 @@ export default class WindowManager {
     }
 
     /**
+     * Handler that is called when the viewport is resized.
      * @private
      */
     _onResize = () => {

@@ -105,6 +105,10 @@ export default class Win32Dialog extends React.Component {
                                  this.props.minHeight,
                                  this.props.borderWidth);
 
+        /**
+         * React component state.
+         * @private
+         */
         this.state = {
             //CSS state start
             width: this.rc.width,
@@ -119,13 +123,11 @@ export default class Win32Dialog extends React.Component {
              * If true then the dialog and its titlebar, have no border.
              * Is used when the dialog is maximized and we need both the outer
              * border and titlebar border to disappear.
-             * @private
              */
             noBorder: false,
 
             /**
              * Is true only when the dialog has mouse focus.
-             * @private
              */
             hasFocus: false,
 
@@ -133,14 +135,15 @@ export default class Win32Dialog extends React.Component {
              * If any of the titlebar buttons is pushed, this property
              * takes values from the titlebarButtons object.
              * The default value is NO_VALUE which means that no buttons are pushed.
-             * @private
              */
             activeTitlebarButton: NO_VALUE,
 
+            /**
+             * This object is passed as a prop to the tooltip component.
+             */
             tooltipArgs: {
                 /**
                  * The text that is displayed in the tooltip.
-                 * @private
                  */
                 msg: '',
                 /**
@@ -148,15 +151,18 @@ export default class Win32Dialog extends React.Component {
                  * since it is displayed right underneath it.
                  * This also serves as a flag because when it's null,
                  * the tooltip isn't displayed.
-                 * @private
                  */
                 position: null,
+                /**
+                 * The tooltip's z-index. This should be the z-index of
+                 * the dialog that is on top (the one that has focus), plus 1.
+                 */
+                zIndex: 0
             },
 
             /**
              * The maximize icon changes if the window is maximized
              * so we keep it in the object's state.
-             * @private
              */
             maximizeIcon: defaultMaximizeIcon
         };
@@ -272,7 +278,7 @@ export default class Win32Dialog extends React.Component {
 
                     return {
                         tooltipArgs: {
-                            msg: prevState.tooltipArgs.msg,
+                            ...prevState.tooltipArgs,
                             position: {
                                 x: prevState.tooltipArgs.position.x - diff,
                                 y: prevState.tooltipArgs.position.y
@@ -426,9 +432,10 @@ export default class Win32Dialog extends React.Component {
      * Shows the tooltip of the button that's underneath the cursor.
      * @param {module:cursor/CursorPos} cursor_pos The tooltip will
      * appear right underneath the cursor's position
+     * @param {number} zIndex The tooltip's z-index.
      * @package
      */
-    showTooltip = (cursor_pos) => {
+    showTooltip = (cursor_pos, zIndex) => {
         let validTooltip = false;
 
         if (this.cursorOnTitlebarButtons) {
@@ -447,6 +454,7 @@ export default class Win32Dialog extends React.Component {
                 tooltipArgs: {
                     msg: Win32Dialog.tooltipMessages[idx],
                     position: cursor_pos,
+                    zIndex: zIndex
                 }
             });
 
@@ -458,6 +466,7 @@ export default class Win32Dialog extends React.Component {
                 tooltipArgs: {
                     msg: this.props.title,
                     position: cursor_pos,
+                    zIndex: zIndex
                 }
             });
 
@@ -674,8 +683,7 @@ export default class Win32Dialog extends React.Component {
             <React.Fragment>
         
             <Tooltip
-                position={tooltipArgs.position}
-                msg={tooltipArgs.msg}
+                args={tooltipArgs}
                 getRef={el => this.tooltipRef = el}
             />
 
