@@ -336,7 +336,7 @@ export default class Win32Dialog extends React.Component {
     }
 
     /**
-     * Resizes the window
+     * Resizes the window.
      * @param {module:cursor/CursorPos} cursor_pos
      * @param {number} resize_type Value from the
      * {module:cursor/cursorState} object.
@@ -354,7 +354,7 @@ export default class Win32Dialog extends React.Component {
     }
 
     /**
-     * Moves the window
+     * Moves the window.
      * @param {module:cursor/CursorPos} cursor_pos
      * @package
      */
@@ -557,6 +557,20 @@ export default class Win32Dialog extends React.Component {
     }
 
     /**
+     * Maximizes the window. Only called by the window manager.
+     * @package
+     */
+    maximize = () => {
+        this.rc.coverViewport();
+        this.setState({
+            width: this.rc.width,
+            height: this.rc.height,
+            top: this.rc.top,
+            left: this.rc.left,
+        });
+    }
+
+    /**
      * Handlers for each titlebar button.
      * @param {number} button Legal values are the values from the
      * titlebarButtons object.
@@ -603,23 +617,15 @@ export default class Win32Dialog extends React.Component {
 
             this.isMaximized = !this.isMaximized;
 
-            this.rc.setCursorOffset();
-
             if (this.isMaximized) {
                 this._cacheDialogRect();
 
-                this.rc.resizeToCursor({
-                    x: 1,
-                    y: 1
-                }, cursorState.topleft);
-                this.rc.resizeToCursor({
-                    x: window.innerWidth - 1,
-                    y: window.innerHeight - 1
-                }, cursorState.bottomright);
+                this.rc.coverViewport();
 
                 noBorder = true;
                 icon = defaultRestoreIcon;
             } else {
+                this.rc.setCursorOffset();
 
                 this.rc.resizeToCursor({
                     x: this.rcCache.left,

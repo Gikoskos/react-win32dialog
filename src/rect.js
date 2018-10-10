@@ -370,6 +370,15 @@ export default class DialogRect {
     }
 
     /**
+     * Stretches the rect's edges so that they cover the entire
+     * viewport.
+     * @package
+     */
+    coverViewport() {
+        this._update(1, 1, window.innerWidth, window.innerHeight);
+    }
+
+    /**
      * Moves the rect.
      * @param {module:cursor/CursorPos} cursor_pos
      * @package

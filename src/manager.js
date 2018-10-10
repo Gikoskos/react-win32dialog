@@ -37,7 +37,8 @@ const DialogInterface = {
         'pushTitlebarButton',
         'releaseTitlebarButton',
         'handleTitlebarButtonClick',
-        'isTitleOverflowing'
+        'isTitleOverflowing',
+        'maximize'
     ],
     properties: [
         'tooltipOnTitlebarButton',
@@ -565,10 +566,7 @@ export default class WindowManager {
         let topWin = this.windows[this.zIndexTop - 1];
 
         if (topWin.isMaximized) {
-            topWin.updateWindowSize({
-                x: window.innerWidth,
-                y: window.innerHeight
-            }, cursorState.bottomright);
+            topWin.maximize();
         }
     }
 
