@@ -3,7 +3,10 @@
  */
 'use strict';
 
-
+/**
+ * Object that enumerates all possible cursor resize states.
+ * @package
+ */
 const cursorState = {
     regular: 0,
     bottom: 1,
@@ -16,6 +19,11 @@ const cursorState = {
     left: 8
 };
 
+/**
+ * Array with the CSS properties for each possible cursor resize
+ * state. It should be indexed with values from the cursorState object.
+ * @package
+ */
 const cursorStyle = [
     "default",
     "s-resize",
@@ -28,6 +36,9 @@ const cursorStyle = [
     "w-resize",
 ];
 
+/**
+ * @package
+ */
 const cursorStyleClasses = cursorStyle.map(i => 'react-win32dialog-cursor-' + i)
 
 /**
@@ -36,13 +47,26 @@ const cursorStyleClasses = cursorStyle.map(i => 'react-win32dialog-cursor-' + i)
  * the web page.
  * @property {number} y Cursor's y position relative to
  * the web page.
+ * @package
  */
 
+/**
+ * Returns a CursorPos object with the cursor's position
+ * relative to the viewport's scroll.
+ * @param {Event} ev
+ * @package
+ */
 const getCursorPos = (ev) => ({
     x: ev.clientX + window.scrollX,
     y: ev.clientY + window.scrollY,
 });
 
+/**
+ * Sets the document's body cursor.
+ * @param {cursorState} new_cursor
+ * @param {cursorState} old_cursor
+ * @package
+ */
 const setGlobalCursorStyle = (new_cursor, old_cursor) => {
     /*if (old_cursor)
         document.body.classList.toggle(cursorStyleClasses[old_cursor]);

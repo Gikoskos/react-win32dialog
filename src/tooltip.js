@@ -23,12 +23,14 @@ import React from 'react';
  * Note: I think there's no way to get the desktop's cursor icon size (height, width)
  * in JS so I'm hardcoding the height of the default Windows 7 cursor. If a different
  * cursor icon is used, the tooltip might not appear exactly underneath the cursor.
+ * @private
  */
 const cursorHeight = 18;
 
 
 /**
  * Represents a tooltip as a React component.
+ * @package
  */
 const Tooltip = (props) => {
     //props.position should be the position of the cursor so
