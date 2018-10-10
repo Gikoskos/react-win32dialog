@@ -55,16 +55,16 @@ export default class DialogRect {
      * @private
      */
     _update(x, y, w, h) {
-        if (x)
+        if (x !== undefined)
             this.left = x;
 
-        if (y)
+        if (y !== undefined)
             this.top = y;
 
-        if (w)
+        if (w !== undefined)
             this.width = w;
 
-        if (h)
+        if (h !== undefined)
             this.height = h;
 
         this.right = this.width + this.left;
@@ -375,7 +375,13 @@ export default class DialogRect {
      * @package
      */
     coverViewport() {
-        this._update(1, 1, window.innerWidth, window.innerHeight);
+        this.left = 0;
+        this.top = 0;
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+
+        this.right = this.width + this.left;
+        this.bottom = this.top + this.height;
     }
 
     /**
