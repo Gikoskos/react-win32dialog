@@ -23,10 +23,6 @@ import defaultMaximizeIcon from './assets/default-maximize-icon.png';
 import defaultRestoreIcon from './assets/default-restore-icon.png';
 
 
-//Initialize the window manager. Only one instance
-//of the window manager should be running at any given point.
-const windowManager = new WindowManager();
-
 
 /**
  * A React component that renders a resizeable/moveable dialog box
@@ -87,6 +83,11 @@ export default class Win32Dialog extends React.Component {
     };
 
     static tooltipMessages = ['Minimize', 'Maximize', 'Close', 'Restore Down'];
+
+    //Initialize the window manager. Only one instance
+    //of the window manager should be running at any given point.
+    static windowManager = new WindowManager();
+
 
     constructor(props) {
         super(props);
@@ -228,11 +229,11 @@ export default class Win32Dialog extends React.Component {
     componentDidMount() {
         //the dialog object gets registered to the window manager
         //after it's been initialized and mounted
-        windowManager.registerWindow(this);
+        Win32Dialog.windowManager.registerWindow(this);
     }
 
     componentWillUnmount() {
-        windowManager.unregisterWindow(this.state.zIndex);
+        Win32Dialog.windowManager.unregisterWindow(this.state.zIndex);
     }
 
     componentDidUpdate() {
