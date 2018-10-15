@@ -50,8 +50,10 @@ describe('<Win32Dialog />', () => {
 
         wrapper.instance().updateWindowFocus(true);
         expect(wrapper.state('hasFocus')).toBeTruthy();
+        expect(hasFocus).toBeTruthy();
         wrapper.instance().updateWindowFocus(false);
         expect(wrapper.state('hasFocus')).toBeFalsy();
+        expect(hasFocus).toBeFalsy();
     });
 
     describe('Rendering', () => {
