@@ -1,3 +1,7 @@
+/**
+ * This module has various unit tests for the react-win32dialog components.
+ */
+
 import React from 'react';
 import {
     configure,
@@ -7,8 +11,9 @@ import {
 } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import Win32Dialog from './index';
+import Tooltip from './tooltip';
 import { NO_VALUE } from './globals';
-import { titlebarButtons } from './titlebarbutton';
+import { TitlebarButton, titlebarButtons } from './titlebarbutton';
 import { cursorState } from './cursor';
 
 configure({ adapter: new Adapter() });
@@ -61,6 +66,11 @@ describe('<Win32Dialog />', () => {
 
         beforeEach(() => {
             mountTestDialog();
+        });
+
+        it('uses a single Tooltip component', () => {
+            nodes = wrapper.find('Tooltip');
+            expect(nodes.length).toBe(1);
         });
 
         it('draws outter border div', () => {
@@ -247,6 +257,101 @@ describe('<Win32Dialog />', () => {
         });
     });
 
+    describe('Tooltip', () => {
+        const defaultPos = {x: 1, y: 1};
+        let tooltipZIndex;
+
+        beforeEach(() => {
+            mountTestDialog();
+            tooltipZIndex = wrapper.state('zIndex') + 1;
+        });
+
+        it('has zeroed out state by default', () => {
+            expect(wrapper.state('tooltipArgs')).toMatchObject({
+                msg: '',
+                position: null,
+                zIndex: 0
+            });
+        });
+
+        it('is activated when showTooltip is called', () => {
+            wrapper.instance().cursorOnTitlebarButtons = true;
+            wrapper.instance().hoverTitlebarButton = titlebarButtons.minimize;
+
+            expect(wrapper.instance().showTooltip(defaultPos, tooltipZIndex)).toBeTruthy();
+        });
+
+        //due to some "bug" in enzyme I can't change the props that are sent
+        //to a nested functional/stateless component (from my tests, they
+        //always have their initial value) so instead I'm testing the state
+        //of Win32Dialog, and I have different tests for the Tooltip component
+        //that test whether the props are received correctly or not
+        it('sets correct state in case of minimize button', () => {
+            wrapper.instance().cursorOnTitlebarButtons = true;
+            wrapper.instance().hoverTitlebarButton = titlebarButtons.minimize;
+
+            wrapper.instance().showTooltip(defaultPos, tooltipZIndex);
+
+            expect(wrapper.state('tooltipArgs')).toMatchObject({
+                position: defaultPos,
+                zIndex: tooltipZIndex,
+                msg: Win32Dialog.tooltipMessages[titlebarButtons.minimize]
+            });
+        });
+
+        it('sets correct state in case of maximize button', () => {
+            wrapper.instance().cursorOnTitlebarButtons = true;
+            wrapper.instance().hoverTitlebarButton = titlebarButtons.maximize;
+
+            wrapper.instance().showTooltip(defaultPos, tooltipZIndex);
+
+            expect(wrapper.state('tooltipArgs')).toMatchObject({
+                position: defaultPos,
+                zIndex: tooltipZIndex,
+                msg: Win32Dialog.tooltipMessages[titlebarButtons.maximize]
+            });
+        });
+
+        it('sets correct state in case of close button', () => {
+            wrapper.instance().cursorOnTitlebarButtons = true;
+            wrapper.instance().hoverTitlebarButton = titlebarButtons.close;
+
+            wrapper.instance().showTooltip(defaultPos, tooltipZIndex);
+
+            expect(wrapper.state('tooltipArgs')).toMatchObject({
+                position: defaultPos,
+                zIndex: tooltipZIndex,
+                msg: Win32Dialog.tooltipMessages[titlebarButtons.close]
+            });
+        });
+
+        it('sets correct state in case of restore button', () => {
+            wrapper.instance().isMaximized = wrapper.instance().cursorOnTitlebarButtons = true;
+            wrapper.instance().hoverTitlebarButton = titlebarButtons.maximize;
+
+            wrapper.instance().showTooltip(defaultPos, tooltipZIndex);
+
+            expect(wrapper.state('tooltipArgs')).toMatchObject({
+                position: defaultPos,
+                zIndex: tooltipZIndex,
+                msg: Win32Dialog.tooltipMessages[Win32Dialog.tooltipMessages.length - 1]
+            });
+        });
+
+        it('is destroyed when closeTooltip is called', () => {
+            wrapper.instance().cursorOnTitlebarButtons = true;
+            wrapper.instance().hoverTitlebarButton = titlebarButtons.minimize;
+
+            wrapper.instance().showTooltip(defaultPos, tooltipZIndex);
+            wrapper.instance().closeTooltip();
+
+            expect(wrapper.state('tooltipArgs')).toMatchObject({
+                msg: '',
+                position: null
+            });
+        });
+    });
+
     describe('Titlebar buttons', () => {
         let buttonarea, titlebar, btnId;
 
@@ -324,5 +429,75 @@ describe('<Win32Dialog />', () => {
             wrapper.instance().handleTitlebarButtonClick(btnId);
             expect(wrapper.instance().isMinimized).toBeFalsy();
         });
+    });
+});
+
+describe('<Tooltip />', () => {
+    const testProps = {
+        position: {x: 1, y: 1},
+        zIndex: 1,
+        msg: 'Hello world'
+    };
+
+    it('receives args object prop', () => {
+        expect(mount(<Tooltip args={testProps}/>).prop('args')).toMatchObject(testProps);
+    });
+
+    it('renders a single tooltip border div', () => {
+        const borderNode = mount(<Tooltip args={testProps}/>).find('div');
+
+        expect(borderNode).toBeTruthy();
+        expect(borderNode.length).toBe(1);
+        expect(borderNode.hasClass('react-win32dialog-tooltip')).toBeTruthy();
+    });
+
+    it('div dimensions are computed from given props', () => {
+        const borderNodeStyle = mount(<Tooltip args={testProps}/>).find('div').getDOMNode().style;
+        let val;
+
+        val = parseInt(borderNodeStyle.left.slice(0, borderNodeStyle.left.lastIndexOf('px')));
+        expect(val).toBe(testProps.position.x);
+
+        val = parseInt(borderNodeStyle.top.slice(0, borderNodeStyle.top.lastIndexOf('px')));
+        expect(val).toBeGreaterThan(testProps.position.y);
+
+        val = parseInt(borderNodeStyle['z-index']);
+        expect(val).toBe(testProps.zIndex);
+    });
+
+    it('returns null if no position is defined', () => {
+        expect(shallow(<Tooltip args={{position: null}}/>).type()).toBeNull();
+    });
+});
+
+describe('<Titlebar />', () => {
+    it('renders a single border div', () => {
+        const divNode = shallow(<TitlebarButton />).find('div');
+        expect(divNode.length).toBe(1);
+        expect(divNode.hasClass('react-win32dialog-titlebar-button')).toBeTruthy();
+    });
+
+    it('renders a single icon img', () => {
+        const btnNode = shallow(<TitlebarButton />);
+        const imgNode = btnNode.find('img');
+        expect(imgNode.length).toBe(1);
+        expect(imgNode.parent().hasClass('react-win32dialog-titlebar-button')).toBeTruthy();
+    });
+
+    it('can get toggled', () => {
+        const divNode = mount(<TitlebarButton toggled={true}/>).find('div');
+        expect(divNode.hasClass('react-win32dialog-titlebar-button-active')).toBeTruthy();
+    });
+
+    it('handles mouseenter', () => {
+        let isHovered = false,
+            onEnterFn = () => (isHovered = true),
+            onLeaveFn = () => (isHovered = false);
+        const divNode = mount(<TitlebarButton onEnter={onEnterFn} onLeave={onLeaveFn}/>).find('div');
+
+        divNode.simulate('mouseenter');
+        expect(isHovered).toBeTruthy();
+        divNode.simulate('mouseleave');
+        expect(isHovered).toBeFalsy();
     });
 });

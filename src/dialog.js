@@ -450,7 +450,7 @@ export default class Win32Dialog extends React.Component {
             if (this.isMaximized && this.hoverTitlebarButton === titlebarButtons.maximize) {
                 //if the window is maximized, and the mouse is hovering on the maximize button,
                 //then the text on the tooltip should be 'Restore Down'
-                idx = 3;
+                idx = Win32Dialog.tooltipMessages.length - 1;
             }
 
             this.setState({
@@ -686,7 +686,7 @@ export default class Win32Dialog extends React.Component {
 
         return (
             <React.Fragment>
-        
+
             <Tooltip
                 args={tooltipArgs}
                 getRef={el => this.tooltipRef = el}
