@@ -207,7 +207,6 @@ export default class WindowManager {
      */
     registerWindow(w, checkInheritance = false) {
         if (!checkInheritance /*|| DialogInterface.implements(w)*/) {
-
             if (this.zIndexTop > 0) {
                 this.windows[this.zIndexTop - 1].updateWindowFocus(false);
             }
@@ -242,8 +241,11 @@ export default class WindowManager {
 
             this._bringWindowToTop(zIndex);
 
-            this.windows[this.zIndexTop--] = null;
+            this.windows[--this.zIndexTop] = null;
 
+            if (this.zIndexTop) {
+                this.windows[this.zIndexTop - 1].updateWindowFocus(true);
+            }
         } else {
             console.log(`WindowManager.unregisterWindow error: Invalid zIndex argument '${zIndex}'.`);
         }

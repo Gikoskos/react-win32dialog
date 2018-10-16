@@ -353,17 +353,16 @@ describe('<Win32Dialog />', () => {
     });
 
     describe('Titlebar buttons', () => {
-        let buttonarea, titlebar, btnId;
+        let buttonarea, btnId;
 
         beforeEach(() => {
             mountTestDialog();
             buttonarea = wrapper.find('.react-win32dialog-titlebar-buttons');
-            titlebar = wrapper.find('.react-win32dialog-titlebar');
             btnId = titlebarButtons.minimize;
         });
 
         afterEach(() => {
-            titlebar = buttonarea = undefined;
+            buttonarea = undefined;
         });
 
 
@@ -429,7 +428,7 @@ describe('<Win32Dialog />', () => {
             wrapper.instance().handleTitlebarButtonClick(btnId);
             expect(wrapper.instance().isMinimized).toBeFalsy();
         });
-    });
+    }); 
 });
 
 describe('<Tooltip />', () => {
@@ -499,5 +498,118 @@ describe('<Titlebar />', () => {
         expect(isHovered).toBeTruthy();
         divNode.simulate('mouseleave');
         expect(isHovered).toBeFalsy();
+    });
+});
+
+describe('WindowManager', () => {
+    const wm = Win32Dialog.windowManager;
+
+    describe('single window', () => {
+        let wrapper;
+
+        beforeAll(() => {
+            if (!wrapper) {
+                wrapper = mount(<Win32Dialog />);
+            }
+        });
+
+        afterAll(() => {
+            wrapper.unmount();
+        });
+
+        it('zIndexTop property has value 1', () => {
+            expect(wm.zIndexTop).toBe(1);
+        });
+    });
+
+    describe('multiple windows', () => {
+        const arrLen = 5, lastIdx = arrLen - 1;
+        let winArr;
+
+        beforeEach(() => {
+            //create 100 windows
+            if (!winArr) {
+                winArr = new Array(arrLen);
+                for (let i = 0; i < arrLen; i++) {
+                    winArr[i] = mount(<Win32Dialog />);
+                }
+            }
+        });
+
+        it('checks if only the top window has focus', () => {
+            for (let i = 0; i < lastIdx; i++) {
+                expect(winArr[i].state('hasFocus')).toBeFalsy();
+            }
+
+            expect(winArr[lastIdx].state('hasFocus')).toBeTruthy();
+        });
+
+        it('check that all windows have proper z-indexes', () => {
+            for (let i = 0; i < lastIdx; i++) {
+                expect(winArr[i].state('zIndex')).toBe(i);
+            }
+
+            expect(winArr[lastIdx].state('zIndex')).toBe(wm.zIndexTop - 1);
+        });
+        
+        describe('unregister a single window', () => {
+            beforeEach(() => {
+                winArr[2].unmount();
+                winArr[2] = null;
+            });
+            
+            afterEach(() => {
+                for (let i = 0; i < arrLen; i++) {
+                    if (winArr[i]) winArr[i].unmount();
+                }
+                
+                winArr = null;
+            });
+            
+            it('check that the z-indexes are fixed', () => {
+                for (let i = 0, zIndex = 0; i < lastIdx; i++) {
+                    if (winArr[i]) {
+                        expect(winArr[i].state('zIndex')).toBe(zIndex);
+                        zIndex++;
+                    }
+                }
+            });
+
+            it('check that only the next top window gains focus', () => {
+                for (let i = 0; i < lastIdx; i++) {
+                    if (winArr[i]) {
+                        expect(winArr[i].state('hasFocus')).toBeFalsy();
+                    }
+                }
+                
+                expect(winArr[lastIdx].state('hasFocus')).toBeTruthy();
+            });
+        });
+
+        describe('unregister multiple windows', () => {
+            it('check that the top window always has focus while unregistering the bottom windows', () => {
+                for (let i = 0; i < lastIdx; i++) {
+                    winArr[i].unmount();
+                    for (let j = i + 1; j < lastIdx; j++) {
+                        expect(winArr[j].state('hasFocus')).toBeFalsy();
+                    }
+                }
+    
+                expect(winArr[lastIdx].state('hasFocus')).toBeTruthy();
+                winArr = null;
+            });
+    
+            it('check that the z-indexes are fixed while unregistering the bottom windows', () => {
+                for (let i = 0; i < lastIdx; i++) {
+                    winArr[i].unmount();
+                    for (let j = i + 1, zIndex = 1; j < lastIdx; j++, zIndex++) {
+                        expect(winArr[j].state('zIndex')).toBe(zIndex);
+                    }
+                }
+    
+                expect(winArr[lastIdx].state('zIndex')).toBe(1);
+                winArr = null;
+            });
+        });
     });
 });
