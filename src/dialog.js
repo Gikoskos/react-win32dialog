@@ -13,7 +13,10 @@ import {
     titlebarButtons,
     TitlebarButton,
 } from './titlebarbutton';
-import { NO_VALUE } from './globals';
+import {
+    NO_VALUE,
+    getViewportWidth
+} from './globals';
 
 
 import defaultTitlebarIcon from './assets/default-titlebar-icon.png';
@@ -21,7 +24,6 @@ import defaultCloseIcon from './assets/default-close-icon.png';
 import defaultMinimizeIcon from './assets/default-minimize-icon.png';
 import defaultMaximizeIcon from './assets/default-maximize-icon.png';
 import defaultRestoreIcon from './assets/default-restore-icon.png';
-
 
 
 /**
@@ -69,7 +71,12 @@ export default class Win32Dialog extends React.Component {
         title: PropTypes.string,
         /** Icon that is displayed on the dialog's titlebar. */
         icon: PropTypes.string,
-        /** Is called when the dialog's X button is pressed. */
+        /** 
+         * Is called when the dialog's X button is pressed.
+         * If it's defined, it should return a truthy value for
+         * the dialog to exit. If it returns falsy, the X button
+         * doesn't close the dialog.
+         */
         onExit: PropTypes.func,
         /** Is called when the dialog loses focus. */
         onBlur: PropTypes.func,
@@ -131,6 +138,12 @@ export default class Win32Dialog extends React.Component {
              * Is true only when the dialog has mouse focus.
              */
             hasFocus: false,
+
+            /**
+             * Is true only when the user pressed the X button.
+             * If true then this component will always render null.
+             */
+            hasClosed: false,
 
             /**
              * If any of the titlebar buttons is pushed, this property
@@ -233,7 +246,11 @@ export default class Win32Dialog extends React.Component {
     }
 
     componentWillUnmount() {
-        Win32Dialog.windowManager.unregisterWindow(this.state.zIndex);
+        //unregister the dialog from the window manager, if it hasn't
+        //been closed through the X button
+        if (!this.state.hasClosed) {
+            Win32Dialog.windowManager.unregisterWindow(this.state.zIndex);
+        }
     }
 
     componentDidUpdate() {
@@ -273,10 +290,11 @@ export default class Win32Dialog extends React.Component {
             this._deselectTooltipText();
 
             const tooltipRect = this.tooltipRef.getBoundingClientRect();
+            const viewportWidth = getViewportWidth();
 
-            if (tooltipRect.right > window.innerWidth) {
+            if (tooltipRect.right > viewportWidth) {
                 this.setState((prevState) => {
-                    const diff = tooltipRect.right - window.innerWidth;
+                    let diff = tooltipRect.right - viewportWidth;
 
                     return {
                         tooltipArgs: {
@@ -290,17 +308,6 @@ export default class Win32Dialog extends React.Component {
                 });
             }
         }
-    }
-
-    /**
-     * Backups the dialog's current dimensions.
-     * @private
-     */
-    _cacheDialogRect() {
-        this.rcCache.width = this.rc.width;
-        this.rcCache.height = this.rc.height;
-        this.rcCache.top = this.rc.top - window.scrollY;
-        this.rcCache.left = this.rc.left - window.scrollX;
     }
 
     /**
@@ -329,7 +336,7 @@ export default class Win32Dialog extends React.Component {
                     range = sel.getRangeAt(i);
                     rangeText = range.toString();
 
-                    if (tooltipMsg.includes(rangeText) || rangeText.includes(tooltipMsg)) {
+                    if (rangeText.includes(tooltipMsg)) {
                         sel.removeRange(range);
                         break;
                     }
@@ -376,14 +383,18 @@ export default class Win32Dialog extends React.Component {
      * @package
      */
     updateWindowFocus(new_focus) {
-        if (new_focus) {
-            if (this.props.onFocus) this.props.onFocus();
-        } else {
-            if (this.props.onBlur) this.props.onBlur();
-        }
+        this.setState((prevState) => {
+            if (prevState.hasFocus != new_focus) {
+                if (new_focus) {
+                    if (this.props.onFocus) this.props.onFocus();
+                } else {
+                    if (this.props.onBlur) this.props.onBlur();
+                }
 
-        this.setState({
-            hasFocus: new_focus
+                return {
+                    hasFocus: new_focus
+                };
+            }
         });
     }
 
@@ -564,7 +575,7 @@ export default class Win32Dialog extends React.Component {
      * @package
      */
     maximize() {
-        this.rc.coverViewport();
+        this.rc.coverDocumentBody();
         this.setState({
             width: this.rc.width,
             height: this.rc.height,
@@ -593,8 +604,9 @@ export default class Win32Dialog extends React.Component {
             this.rc.setCursorOffset();
 
             if (this.isMinimized) {
-                this._cacheDialogRect();
-
+                this.rcCache.width = this.rc.width;
+                this.rcCache.height = this.rc.height;
+        
                 this.rc.resizeToCursor({
                     x: this.rc.left + this.rc.minWidth,
                     y: this.rc.top + this.rc.minHeight
@@ -609,8 +621,6 @@ export default class Win32Dialog extends React.Component {
             this.setState({
                 width: this.rc.width,
                 height: this.rc.height,
-                top: this.rc.top,
-                left: this.rc.left,
             });
             break;
         case titlebarButtons.maximize:
@@ -619,13 +629,15 @@ export default class Win32Dialog extends React.Component {
             }
 
             this.isMaximized = !this.isMaximized;
+            noBorder = this.isMaximized;
 
             if (this.isMaximized) {
-                this._cacheDialogRect();
-
-                this.rc.coverViewport();
-
-                noBorder = true;
+                this.rcCache.width = this.rc.width;
+                this.rcCache.height = this.rc.height;
+                this.rcCache.top = this.rc.top;
+                this.rcCache.left = this.rc.left;
+        
+                this.rc.coverDocumentBody();
                 icon = defaultRestoreIcon;
             } else {
                 this.rc.setCursorOffset();
@@ -634,8 +646,6 @@ export default class Win32Dialog extends React.Component {
                                this.rcCache.top,
                                this.rcCache.width,
                                this.rcCache.height);
-
-                noBorder = false;
                 icon = defaultMaximizeIcon;
             }
 
@@ -649,14 +659,29 @@ export default class Win32Dialog extends React.Component {
             });
             break;
         case titlebarButtons.close:
-            if (this.props.onExit) {
-                this.props.onExit();
+            //If an onExit callback was given as a prop, call it.
+            //If the callback's return value is truthy, then this
+            //dialog box is "destroyed" (essentially it will only
+            //render null from now on) and it will be unregistered
+            //from the window manager.
+            //If an onExit callback wasn't given, then the window
+            //simply gets destroyed and unregistered.
+            //If a callback was given and it returns falsy, nothing happens.
+            if (!this.props.onExit || this.props.onExit()) {
+                Win32Dialog.windowManager.unregisterWindow(this.state.zIndex);
+                this.setState({
+                    hasClosed: true
+                });
             }
             break;
         }
     }
 
     render() {
+        if (this.state.hasClosed) {
+            return null;
+        }
+
         const {
             maximizeIcon,
             tooltipArgs,

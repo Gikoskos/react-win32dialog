@@ -4,11 +4,11 @@
 'use strict';
 
 import { cursorState } from './cursor';
-
+import { getViewportWidth } from './globals';
 
 const defaultRect = {
-    min_w: 118,
-    min_h: 23,
+    min_w: 122,
+    min_h: 27,
     border_w: 2
 };
 
@@ -32,12 +32,14 @@ export default class DialogRect {
     constructor(x, y, w, h, min_w, min_h, border_w) {
         this.borderWidth = (border_w && border_w >= defaultRect.border_w) ? border_w : defaultRect.border_w;
 
-        this.minWidth = (min_w && min_w > 0) ? min_w : defaultRect.min_w;
-        this.minHeight = (min_h && min_h > 0) ? min_h : defaultRect.min_h;
+        this.minWidth = (min_w && min_w > defaultRect.min_w) ? min_w : defaultRect.min_w;
+        this.minHeight = (min_h && min_h > defaultRect.min_h) ? min_h : defaultRect.min_h;
 
         //adapt minWidth and minHeight to the border width
-        this.minWidth += 2 * this.borderWidth;
-        this.minHeight += 2 * this.borderWidth;
+        if (this.borderWidth !== defaultRect.border_w) {
+            this.minWidth += 2 * this.borderWidth;
+            this.minHeight += 2 * this.borderWidth;
+        }
 
         this.left = x || 1;
         this.top = y || 1;
@@ -374,11 +376,11 @@ export default class DialogRect {
      * viewport.
      * @package
      */
-    coverViewport() {
+    coverDocumentBody() {
         this.left = 0;
         this.top = 0;
-        this.width = window.innerWidth;
-        this.height = window.innerHeight;
+        this.width = getViewportWidth();
+        this.height = document.body.clientHeight;
 
         this.right = this.width + this.left;
         this.bottom = this.top + this.height;

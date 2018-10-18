@@ -188,11 +188,6 @@ export default class WindowManager {
         this.activeWindow = NO_VALUE;
 
         setGlobalCursorStyle(this.currCursor);
-        window.addEventListener('mousemove', this._onMouseMove, true);
-        window.addEventListener('mouseup', this._onMouseUp, true);
-        window.addEventListener('mousedown', this._onMouseDown, true);
-        window.addEventListener('dblclick', this._onDoubleClick, true);
-        window.addEventListener('resize', this._onResize, false);
     }
 
     /**
@@ -207,9 +202,6 @@ export default class WindowManager {
      */
     registerWindow(w, checkInheritance = false) {
         if (!checkInheritance /*|| DialogInterface.implements(w)*/) {
-            if (this.zIndexTop > 0) {
-                this.windows[this.zIndexTop - 1].updateWindowFocus(false);
-            }
 
             if (this.windows.length === this.zIndexTop) {
                 this.windows.push(w);
@@ -219,6 +211,12 @@ export default class WindowManager {
 
             w.updateWindowFocus(true);
             w.updateWindowZIndex(this.zIndexTop);
+
+            if (this.zIndexTop > 0) {
+                this.windows[this.zIndexTop - 1].updateWindowFocus(false);
+            } else {
+                this._startListening();
+            }
 
             return this.zIndexTop++;
         }
@@ -245,10 +243,28 @@ export default class WindowManager {
 
             if (this.zIndexTop) {
                 this.windows[this.zIndexTop - 1].updateWindowFocus(true);
+            } else {
+                this._stopListening();
             }
         } else {
             console.log(`WindowManager.unregisterWindow error: Invalid zIndex argument '${zIndex}'.`);
         }
+    }
+
+    _startListening() {
+        window.addEventListener('mousemove', this._onMouseMove, true);
+        window.addEventListener('mouseup', this._onMouseUp, true);
+        window.addEventListener('mousedown', this._onMouseDown, true);
+        window.addEventListener('dblclick', this._onDoubleClick, true);
+        window.addEventListener('resize', this._onResize, false);
+    }
+
+    _stopListening() {
+        window.removeEventListener('mousemove', this._onMouseMove, true);
+        window.removeEventListener('mouseup', this._onMouseUp, true);
+        window.removeEventListener('mousedown', this._onMouseDown, true);
+        window.removeEventListener('dblclick', this._onDoubleClick, true);
+        window.removeEventListener('resize', this._onResize, false);
     }
 
     /**
