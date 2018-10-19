@@ -61,5 +61,14 @@
   },
   "files": [
     "dist"
+  ],
+  "keywords": [
+    "react",
+    "component",
+    "react-component",
+    "ui",
+    "modeless",
+    "dialog",
+    "win32"
   ]
 }
