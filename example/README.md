@@ -1,1 +1,1 @@
-Example app that uses react-win32dialog.
+Source code for https://gikoskos.github.io/react-win32dialog/
