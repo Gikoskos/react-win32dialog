@@ -1,8 +1,10 @@
-<h1 align="center"><a href="https://gikoskos.github.io/react-win32dialog/">react-win32dialog</a>  <img alt="react-win32dialog-logo" src="readme_logo.png"/></h1>
+<h1 align="center"><a href="https://gikoskos.github.io/react-win32dialog/">react-win32dialog</a> <br/>💠</h1>
 
-React component library for modeless, resizeable and moveable dialog boxes with a classic Windows look-and-feel. Includes a light-weight window manager that supports multiple dialog boxes and stacking.
+![react-win32dialog box](https://i.imgur.com/A048mfO.png)
 
-[![NPM](https://img.shields.io/npm/v/react-win32dialog.svg)](https://www.npmjs.com/package/react-win32dialog)
+React component library for modeless, resizeable and moveable dialog boxes with a classic Windows look-and-feel. Comes with a light-weight window manager that supports multiple dialog boxes and stacking.
+
+[![NPM](https://img.shields.io/npm/v/react-win32dialog.svg)](https://www.npmjs.com/package/react-win32dialog)![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)
 
 ## Install
 
@@ -90,4 +92,4 @@ If you find a bug or want to add a feature feel free to make a PR or open an Iss
 
 ## License
 
-MIT © [Gikoskos](https://github.com/Gikoskos)
+ [Gikoskos](https://github.com/Gikoskos) © MIT 2018 

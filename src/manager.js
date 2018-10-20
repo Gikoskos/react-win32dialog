@@ -499,7 +499,7 @@ export default class WindowManager {
                 }
             }
         } else if (ev.button === 2 && this.rightClickTitlebar) {
-            if (win.cursorOnTitlebar)
+            if (this.windows[this.activeWindow].cursorOnTitlebar)
                 console.log('Titlebar context menu not yet implemented :)');
             this.rightClickTitlebar = false;
             ev.preventDefault();
