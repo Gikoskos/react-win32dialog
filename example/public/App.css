@@ -81,16 +81,21 @@ code {
 }
 
 .site-logo-block {
+    border: 3px outset #d4d0c8;
     font-family: Tahoma, Arial;
     font-weight: bolder;
     background-image: linear-gradient(to right, #162e6f 0%, #b4cbe3 100%);
     color: white;
     font-size: 50px;
-    padding: 10px;
     text-align : center;
     box-shadow: 0 0 8px black;
-    border-radius: 4px;
-    transition: width 0.1s, font-size 0.1s, box-shadow 0.1s;
+    transition: font-size 0.1s, box-shadow 0.1s;
+}
+
+.site-logo-inner-border {
+    padding: 10px;
+    border: 2px solid #d4d0c8;
+    transition: border-width 0.1s;
 }
 
 .site-logo-block:hover {
@@ -98,11 +103,15 @@ code {
     color: #d4d0c8;
 }
 
+.site-logo-inner-border:active, .site-logo-inner-border:focus {
+    border-width: 1px;
+}
+
 .site-logo-block:active, .site-logo-block:focus {
     background-image: linear-gradient(to right, #162e6f 0%, #b4cbe3 100%);
     box-shadow: 0 0 1px black;
     color: white;
-    font-size: 48px;
+    font-size: 49px;
 }
 
 .footer-block {

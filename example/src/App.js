@@ -296,13 +296,15 @@ export default class App extends Component {
                 <div className='header-block'>
                     <a href="https://github.com/Gikoskos/react-win32dialog">
                         <div className='site-logo-block'>
-                            <div>react-win32dialog</div>
-                            <span
-                                role='img'
-                                aria-label='diamond shape with a dot inside'
-                            >
-                                💠
-                            </span>
+                            <div className='site-logo-inner-border'>
+                                <div>react-win32dialog</div>
+                                <span
+                                    role='img'
+                                    aria-label='diamond shape with a dot inside'
+                                >
+                                    💠
+                                </span>
+                            </div>
                         </div>
                     </a>
                 </div>

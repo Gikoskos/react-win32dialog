@@ -481,13 +481,18 @@ export default class WindowManager {
      * @private
      */
     _onMouseUp = (ev) => {
-        const win = this.windows[this.activeWindow];
 
         //handle left click mouseup events
         if (ev.button === 0) {
             if (this.moveAction === this._moveWindow) {
-                win.fixOffScreenMove();
+                //in case the active window was moving
+                this.windows[this.activeWindow].fixOffScreenMove();
+
             } else if (this.moveAction === this._titlebarButtonMouseMove) {
+                //in case the active window had one of it's titlebar
+                //buttons clicked
+                const win = this.windows[this.activeWindow];
+
                 win.releaseTitlebarButton();
                 if (win.hoverTitlebarButton === this.pressedButton) {
                     win.handleTitlebarButtonClick(this.pressedButton);
@@ -556,6 +561,9 @@ export default class WindowManager {
             this._bringWindowToTop(this.activeWindow);
             this.activeWindow = this.zIndexTop - 1;
         } else {
+            //notice that in the event handlers I'm not doing array boundary
+            //checks when I use this.zIndexTop, because the event handlers are
+            //only called when there is at least one visible window on screen.
             this.windows[this.zIndexTop - 1].updateWindowFocus(false);
         }
 
@@ -566,9 +574,8 @@ export default class WindowManager {
     /**
      * Handler that is called on the double click event.
      * Checks if the double click event occured on the titlebar
-     * area of any of the windows registered to this window manager.
-     * In that case, it calls the maximize button handler for that
-     * window.
+     * area of the top window. In that case, it calls the
+     * maximize button handler for that window.
      * @private
      */
     _onDoubleClick = (ev) => {
@@ -576,17 +583,11 @@ export default class WindowManager {
             return;
         }
 
-        let win;
+        let topWin = this.windows[this.zIndexTop - 1];
 
-        //this.cursorPos = getCursorPos(ev);
-
-        for (let i = 0; i < this.zIndexTop; i++) {
-            win = this.windows[i];
-
-            if (win.cursorOnTitlebar && !win.cursorOnTitlebarButtons) {
-                this._resetCursor();
-                win.handleTitlebarButtonClick(titlebarButtons.maximize);
-            }
+        if (topWin.cursorOnTitlebar && !topWin.cursorOnTitlebarButtons) {
+            this._resetCursor();
+            topWin.handleTitlebarButtonClick(titlebarButtons.maximize);
         }
     }
 
