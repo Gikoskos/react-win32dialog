@@ -2,6 +2,8 @@
 
 React component library for modeless, resizeable and moveable dialog boxes with a classic Windows look-and-feel. Comes with a light-weight window manager that supports multiple dialog boxes and stacking.
 
+[![NPM](https://img.shields.io/npm/v/react-win32dialog.svg)](https://www.npmjs.com/package/react-win32dialog) ![npm bundle size (minified + gzip)](https://img.shields.io/bundlephobia/minzip/react-win32dialog.svg) ![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)
+
 ## Overview
 
 Win32Dialog windows act a lot like classic Windows OS dialog boxes.
@@ -19,8 +21,6 @@ They can be minimized, maximized and closed by using the titlebar buttons.
 ![red-border](red-buttons.png)
 
 [Check out the tutorial](https://gikoskos.github.io/react-win32dialog/)
-
-[![NPM](https://img.shields.io/npm/v/react-win32dialog.svg)](https://www.npmjs.com/package/react-win32dialog) ![npm bundle size (minified + gzip)](https://img.shields.io/bundlephobia/minzip/react-win32dialog.svg) ![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)
 
 ## Install
 
