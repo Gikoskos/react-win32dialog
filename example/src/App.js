@@ -13,24 +13,6 @@ const nextDocblockName = appendCounterToStrFactory('Doc'),
       nextCodeblockName = appendCounterToStrFactory('Code');
 
 const win32DialogTutorial = [{
-    title: nextDocblockName(),
-    description: (<span><strong>Win32Dialog</strong> windows act a lot like classic
-Windows OS dialog boxes.</span>)
-}, {
-    title: nextDocblockName(),
-    description: (<span><p>They can be resized by left-clicking and dragging from any edge.</p>
-<p><img src="red-border.png" alt="window with red border"/></p></span>)
-}, {
-    title: nextDocblockName(),
-    description: (<span><p>They can be moved around by left-clicking and dragging
-the titlebar.</p>
-<p><img src="red-titlebar.png" alt="window with red titlebar"/></p></span>)
-}, {
-    title: nextDocblockName(),
-    description: (<span><p>They can be minimized, maximized and closed by using the titlebar
-buttons.</p>
-<p><img src="red-buttons.png" alt="window with red buttons"/></p></span>)
-}, {
     title: nextCodeblockName(),
     code: `\
 <Win32Dialog
@@ -228,7 +210,7 @@ class LiveCodePreviewBlock extends Component {
             const halfBlock = Math.ceil(rect.width / 2),
                   dlgWidth = halfBlock - 10,
                   dlgX = halfBlock + Math.ceil(rect.left) + 2,
-                  dlgY = Math.ceil(rect.bottom) + window.scrollY + 234;
+                  dlgY = Math.ceil(rect.bottom) + window.scrollY;
 
             if (this.state.codeWidth < dlgWidth ||
                 this.state.codeX < dlgX ||

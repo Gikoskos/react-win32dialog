@@ -1,8 +1,22 @@
 <h1 align="center"><a href="https://gikoskos.github.io/react-win32dialog/">react-win32dialog</a></h1>
 
-![react-win32dialog box](https://i.imgur.com/A048mfO.png)
-
 React component library for modeless, resizeable and moveable dialog boxes with a classic Windows look-and-feel. Comes with a light-weight window manager that supports multiple dialog boxes and stacking.
+
+## Overview
+
+Win32Dialog windows act a lot like classic Windows OS dialog boxes.
+
+They can be resized by left-clicking and dragging from any edge.
+
+![red-border](red-border.png)
+
+They can be moved around by left-clicking and dragging the titlebar.
+
+![red-border](red-titlebar.png)
+
+They can be minimized, maximized and closed by using the titlebar buttons.
+
+![red-border](red-buttons.png)
 
 [Check out the tutorial](https://gikoskos.github.io/react-win32dialog/)
 
