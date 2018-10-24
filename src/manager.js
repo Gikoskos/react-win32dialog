@@ -348,15 +348,10 @@ export default class WindowManager {
         //get the position of the cursor relative to the window
         let windowCursor = win.getCursorState(this.cursorPos);
 
-        //change the cursor's style, if it's hovering on any of the
-        //borders and it's not in maximized/minimized state
-        if (!win.isMaximized && !win.isMinimized) {
-            if (windowCursor !== this.currCursor) {
-                setGlobalCursorStyle(windowCursor, this.currCursor);
-                this.currCursor = windowCursor;
-            }
-        } else {
-            this._resetCursor();
+        //change the cursor's style, if it's hovering on any of the borders
+        if (windowCursor !== this.currCursor) {
+            setGlobalCursorStyle(windowCursor, this.currCursor);
+            this.currCursor = windowCursor;
         }
 
         //if the cursor isn't hovering on the window's borders, it might

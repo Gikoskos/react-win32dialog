@@ -439,7 +439,11 @@ export default class Win32Dialog extends React.Component {
      * @package
      */
     getCursorState(cursor_pos) {
-        return this.rc.getCursorResizeState(cursor_pos);
+        if (!this.isMaximized && !this.isMinimized) {
+            return this.rc.getCursorResizeState(cursor_pos);
+        }
+
+        return cursorState.regular;
     }
 
     /**
@@ -700,7 +704,7 @@ export default class Win32Dialog extends React.Component {
         }
 
         if (noBorder) {
-            borderClasses += ' react-win32dialog-maximized';
+            borderStyle.borderWidth = 0;
             titlebarClasses += ' react-win32dialog-maximized';
         }
 
