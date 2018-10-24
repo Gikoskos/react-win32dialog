@@ -1,6 +1,6 @@
 {
   "name": "react-win32dialog",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Modeless, resizeable and moveable dialog boxes with a classic Windows look-and-feel",
   "author": "Gikoskos",
   "license": "MIT",
