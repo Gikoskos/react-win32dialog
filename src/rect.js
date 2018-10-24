@@ -406,7 +406,7 @@ export default class DialogRect {
      * also the point stored in cursor_pos).
      * This is how the offsets are calculated in the move operation:
      *
-     *                ╠═══ x offset ═══╣
+     *           ╠═══ x offset ═══╣
      *     ╦     ┌───────────────────────────────────────────────────────┐
      *  y offset │                                                       │
      *     ╩     │                *                                      │

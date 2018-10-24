@@ -355,6 +355,8 @@ export default class WindowManager {
                 setGlobalCursorStyle(windowCursor, this.currCursor);
                 this.currCursor = windowCursor;
             }
+        } else {
+            this._resetCursor();
         }
 
         //if the cursor isn't hovering on the window's borders, it might
@@ -369,22 +371,7 @@ export default class WindowManager {
             //      titlebar's title is truncated
             // iii) the cursor is hovering on top of the titlebar and the
             //      titlebar's title is fully visible
-            if (!win.cursorOnTitlebarButtons && win.isTitleOverflowing()) {
-                //second case where the pointer isn't above any of the titlebar
-                //buttons, and the window title isn't fully displayed (i.e.
-                //truncated due to the window's size being too small possibly)
-
-                if (this.windowWithVisibleTooltip === zIndex) {
-                    if (!win.tooltipOnTitle) {
-                        this._resetTooltip();
-                        this._showTooltip(zIndex);
-                    }
-                } else {
-                    this._resetTooltip();
-                    this.showTooltipTimer.start(zIndex);
-                }
-
-            } else if (win.cursorOnTitlebarButtons) {
+            if (win.cursorOnTitlebarButtons) {
                 //First case where the pointer is hovering on the titlebar buttons.
                 //Due to the design of the tooltip mechanics, this can also
                 //be used for the third case. In that case the tooltip timer will
@@ -404,6 +391,21 @@ export default class WindowManager {
                     this._resetTooltip();
                     this.showTooltipTimer.start(zIndex);
                 }
+            } else if (win.isTitleOverflowing()) {
+                //second case where the pointer isn't above any of the titlebar
+                //buttons, and the window title isn't fully displayed (i.e.
+                //truncated due to the window's size being too small possibly)
+
+                if (this.windowWithVisibleTooltip === zIndex) {
+                    if (!win.tooltipOnTitle) {
+                        this._resetTooltip();
+                        this._showTooltip(zIndex);
+                    }
+                } else {
+                    this._resetTooltip();
+                    this.showTooltipTimer.start(zIndex);
+                }
+
             } else {
                 this._resetTooltip();
             }
@@ -515,7 +517,6 @@ export default class WindowManager {
     _onMouseDown = (ev) => {
         let win;
 
-        this.showTooltipTimer.cancel();
         this._resetTooltip();
 
         for (let i = 0; i < this.zIndexTop; i++) {

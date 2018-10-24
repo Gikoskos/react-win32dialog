@@ -386,9 +386,9 @@ export default class Win32Dialog extends React.Component {
         this.setState((prevState) => {
             if (prevState.hasFocus != new_focus) {
                 if (new_focus) {
-                    if (this.props.onFocus) this.props.onFocus();
+                    this.props.onFocus && this.props.onFocus();
                 } else {
-                    if (this.props.onBlur) this.props.onBlur();
+                    this.props.onBlur && this.props.onBlur();
                 }
 
                 return {

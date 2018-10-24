@@ -18,6 +18,8 @@ import { cursorState } from './cursor';
 
 configure({ adapter: new Adapter() });
 
+//needed for the WindowManager timers
+jest.useFakeTimers();
 
 describe('<Win32Dialog />', () => {
     let wrapper;
@@ -501,16 +503,218 @@ describe('<Titlebar />', () => {
     });
 });
 
+
 describe('WindowManager', () => {
     const wm = Win32Dialog.windowManager;
+    const event_map = {
+        'mousemove': '_onMouseMove',
+        'mouseup': '_onMouseUp',
+        'mousedown': '_onMouseDown',
+        'dblclick': '_onDoubleClick',
+        'resize': '_onResize'
+    };
+    let evListenerCnt = 0, simulateWM = {}, wrapper;
+
+    for (let event_name in event_map) {
+        simulateWM[event_name] = wm[event_map[event_name]];
+    }
+
+    window.addEventListener = () => evListenerCnt++;
+    window.removeEventListener = () => evListenerCnt--;
+
+    describe('events', () => {
+        it('listens to no events by default', () => {
+            expect(evListenerCnt).toBe(0);
+        });
+
+        it('listens to all events when at least one window registers', () => {
+            wrapper = mount(<Win32Dialog />);
+            expect(evListenerCnt).toBe(Object.keys(event_map).length);
+            wrapper.unmount();
+        });
+
+        it('stops listening to events when the last window unregisters', () => {
+            wrapper = mount(<Win32Dialog />);
+            wrapper.unmount();
+            expect(evListenerCnt).toBe(0);
+        });
+
+        describe('mousemove', () => {
+            beforeEach(() => {
+                wrapper = mount(<Win32Dialog />);
+                wrapper.find('.react-win32dialog-outer-border').simulate('mouseenter');
+            });
+
+            afterEach(() => {
+                wrapper.unmount();
+            });
+
+            it("cursor state changes to topleft when hovering on the window's upper left corner", () => {
+                simulateWM['mousemove']({clientX: 2, clientY: 2});
+                expect(wm.currCursor).toBe(cursorState.topleft);
+            });
+
+            it("cursor state changes to top when hovering on the window's upper edge", () => {
+                simulateWM['mousemove']({clientX: wrapper.instance().rc.width / 2, clientY: 2});
+                expect(wm.currCursor).toBe(cursorState.top);
+            });
+
+            it("cursor state changes to topright when hovering on the window's upper right corner", () => {
+                simulateWM['mousemove']({clientX: wrapper.instance().rc.width - 1, clientY: 2});
+                expect(wm.currCursor).toBe(cursorState.topright);
+            });
+
+            it("cursor state changes to right when hovering on the window's right edge", () => {
+                simulateWM['mousemove']({
+                    clientX: wrapper.instance().rc.width - 1,
+                    clientY: wrapper.instance().rc.height / 2
+                });
+                expect(wm.currCursor).toBe(cursorState.right);
+            });
+
+            it("cursor state changes to bottomright when hovering on the window's bottom right corner", () => {
+                simulateWM['mousemove']({
+                    clientX: wrapper.instance().rc.width - 1,
+                    clientY: wrapper.instance().rc.height - 1
+                });
+                expect(wm.currCursor).toBe(cursorState.bottomright);
+            });
+
+            it("cursor state changes to bottom when hovering on the window's bottom edge", () => {
+                simulateWM['mousemove']({
+                    clientX: wrapper.instance().rc.width / 2,
+                    clientY: wrapper.instance().rc.height - 1
+                });
+                expect(wm.currCursor).toBe(cursorState.bottom);
+            });
+
+            it("cursor state changes to bottomleft when hovering on the window's bottom left corner", () => {
+                simulateWM['mousemove']({clientX: 2, clientY: wrapper.instance().rc.height - 1});
+                expect(wm.currCursor).toBe(cursorState.bottomleft);
+            });
+
+            it("cursor state changes to left when hovering on the window's left edge", () => {
+                simulateWM['mousemove']({clientX: 2, clientY: wrapper.instance().rc.height / 2});
+                expect(wm.currCursor).toBe(cursorState.left);
+            });
+
+            it('cursor state resets back to default, if the window is maximized or minimized', () => {
+                wrapper.instance().handleTitlebarButtonClick(titlebarButtons.maximize);
+                simulateWM['mousemove']({clientX: 2, clientY: 2});
+                expect(wm.currCursor).toBe(cursorState.regular);
+                wrapper.instance().handleTitlebarButtonClick(titlebarButtons.maximize);
+                simulateWM['mousemove']({clientX: 2, clientY: 2});
+                expect(wm.currCursor).toBe(cursorState.topleft);
+            });
+
+            it('cursor state resets back to default, if the window is minimized', () => {
+                wrapper.instance().handleTitlebarButtonClick(titlebarButtons.minimize);
+                simulateWM['mousemove']({clientX: 2, clientY: 2});
+                expect(wm.currCursor).toBe(cursorState.regular);
+                wrapper.instance().handleTitlebarButtonClick(titlebarButtons.minimize);
+                simulateWM['mousemove']({clientX: 2, clientY: 2});
+                expect(wm.currCursor).toBe(cursorState.topleft);
+            });
+
+            it('runs the show & close tooltip timers if the cursor is hovering on the titlebar buttons',  () => {
+                wrapper.find('.react-win32dialog-titlebar').simulate('mouseenter');
+                wrapper.find('.react-win32dialog-titlebar-buttons').simulate('mouseenter');
+
+                simulateWM['mousemove']({clientX: wrapper.instance().rc.width - 20, clientY: 10});
+
+                jest.runAllTimers();
+                expect(setTimeout).toHaveBeenCalledTimes(2);
+            });
+
+            it('displays the tooltip immediately and runs the close tooltip timer if a tooltip is already visible on the same window',  () => {
+                let showTooltipOriginal = wm._showTooltip;
+
+                wrapper.find('.react-win32dialog-titlebar').simulate('mouseenter');
+                wrapper.find('.react-win32dialog-titlebar-buttons').simulate('mouseenter');
+
+                wm._showTooltip = jest.fn(zIndex => showTooltipOriginal(zIndex));
+                simulateWM['mousemove']({clientX: wrapper.instance().rc.width - 20, clientY: 10});
+                jest.runOnlyPendingTimers();
+                wrapper.instance().hoverTitlebarButton = titlebarButtons.minimize;
+                simulateWM['mousemove']({clientX: wrapper.instance().rc.width - 25, clientY: 10});
+                expect(wm._showTooltip).toHaveBeenCalled();
+
+                wm._showTooltip = showTooltipOriginal;
+                jest.runAllTimers();
+            });
+        });
+
+        describe('click', () => {
+            const defaultEvent = {
+                clientX: 2,
+                clientY: 2,
+                button: 0,
+                preventDefault: () => {}
+            };
+
+            beforeEach(() => {
+                wrapper = mount(<Win32Dialog />);
+                wrapper.find('.react-win32dialog-outer-border').simulate('mouseenter');
+            });
+
+            afterEach(() => {
+                wrapper.unmount();
+            });
+
+            it('active window is set on mousedown and unset mouseup', () => {
+                //wrapper.find('.react-win32dialog-titlebar').simulate('mouseenter');
+                simulateWM['mousedown'](defaultEvent);
+                expect(wm.activeWindow).toBe(0);
+                simulateWM['mouseup'](defaultEvent);
+                expect(wm.activeWindow).toBe(NO_VALUE);
+                //wrapper.find('.react-win32dialog-titlebar-buttons').simulate('mouseenter');
+            });
+
+            it('moveAction is moveWindow when cursor is on the titlebar and the window isn\'t maximized', () => {
+                wrapper.find('.react-win32dialog-titlebar').simulate('mouseenter');
+                simulateWM['mousedown'](defaultEvent);
+                expect(wm.moveAction).toBe(wm._moveWindow);
+                simulateWM['mouseup'](defaultEvent);
+            });
+
+            it('moveAction remains unchanged when cursor is on the titlebar and the window is maximized', () => {
+                wrapper.find('.react-win32dialog-titlebar').simulate('mouseenter');
+                wrapper.instance().handleTitlebarButtonClick(titlebarButtons.maximize);
+                simulateWM['mousedown'](defaultEvent);
+                expect(wm.moveAction).toBe(wm._defaultMouseMove);
+                simulateWM['mouseup'](defaultEvent);
+                //wrapper.find('.react-win32dialog-titlebar-buttons').simulate('mouseenter');
+            });
+
+            it('moveAction is resizeWindow when cursor is on an edge and the window isn\'t maximized/minimized', () => {
+                simulateWM['mousemove']({clientX: 2, clientY: 2});
+                simulateWM['mousedown'](defaultEvent);
+                expect(wm.moveAction).toBe(wm._resizeWindow);
+                simulateWM['mouseup'](defaultEvent);
+            });
+
+            it('moveAction is titlebarButtonMouseMove when cursor is on titlebar buttons', () => {
+                wrapper.find('.react-win32dialog-titlebar').simulate('mouseenter');
+                wrapper.find('.react-win32dialog-titlebar-buttons').simulate('mouseenter');
+                simulateWM['mousemove']({clientX: wrapper.instance().rc.width - 10, clientY: 10});
+                simulateWM['mousedown'](defaultEvent);
+                expect(wm.moveAction).toBe(wm._titlebarButtonMouseMove);
+                simulateWM['mouseup'](defaultEvent);
+            });
+
+            /*it('', () => {
+                
+            });*/
+
+            /*it('', () => {
+                
+            });*/
+        });
+    });
 
     describe('single window', () => {
-        let wrapper;
-
         beforeAll(() => {
-            if (!wrapper) {
-                wrapper = mount(<Win32Dialog />);
-            }
+            wrapper = mount(<Win32Dialog />);
         });
 
         afterAll(() => {
@@ -536,7 +740,7 @@ describe('WindowManager', () => {
             }
         });
 
-        it('checks if only the top window has focus', () => {
+        it('checks that only the top window has focus', () => {
             for (let i = 0; i < lastIdx; i++) {
                 expect(winArr[i].state('hasFocus')).toBeFalsy();
             }
@@ -544,7 +748,7 @@ describe('WindowManager', () => {
             expect(winArr[lastIdx].state('hasFocus')).toBeTruthy();
         });
 
-        it('check that all windows have proper z-indexes', () => {
+        it('check that all windows have unique z-indexes', () => {
             for (let i = 0; i < lastIdx; i++) {
                 expect(winArr[i].state('zIndex')).toBe(i);
             }

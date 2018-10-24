@@ -10,17 +10,19 @@ Win32Dialog windows act a lot like classic Windows OS dialog boxes.
 
 They can be resized by left-clicking and dragging from any edge.
 
-![red-border](red-border.png)
+![red-border](https://i.imgur.com/8eRyJWC.png)
 
 They can be moved around by left-clicking and dragging the titlebar.
 
-![red-border](red-titlebar.png)
+![red-titlebar](https://i.imgur.com/eCBPQGt.png)
 
 They can be minimized, maximized and closed by using the titlebar buttons.
 
-![red-border](red-buttons.png)
+![red-buttons](https://i.imgur.com/wmQ5Z1t.png)
 
 [Check out the tutorial](https://gikoskos.github.io/react-win32dialog/)
+
+Note that this component relies heavily on mouse events, so it might not work as intended in environments that don't use mouse pointers.
 
 ## Install
 
@@ -82,8 +84,6 @@ class Example extends React.Component {
     }
 }
 ```
-
-Note that this component relies heavily on mouse events, so it might not work as intended in environments that don't use mouse pointers.
 
 ## Props
 
