@@ -296,14 +296,14 @@ export default class Win32Dialog extends React.Component {
             if (tooltipRect.right > viewportWidth) {
                 this.setState((prevState) => {
                     let diff = tooltipRect.right - viewportWidth,
-                        {prev_x, prev_y} = prevState.tooltipArgs.position;
+                        {x, y} = prevState.tooltipArgs.position;
 
                     return {
                         tooltipArgs: {
                             ...prevState.tooltipArgs,
                             position: {
-                                x: prev_x - diff,
-                                y: prev_y
+                                x: x - diff,
+                                y: y
                             },
                         }
                     };
