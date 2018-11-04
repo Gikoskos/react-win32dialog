@@ -37,11 +37,6 @@ const cursorStyle = [
 ];
 
 /**
- * @package
- */
-const cursorStyleClasses = cursorStyle.map(i => 'react-win32dialog-cursor-' + i)
-
-/**
  * @typedef {Object} CursorPos
  * @property {number} x Cursor's x position relative to
  * the web page.
@@ -61,6 +56,8 @@ const getCursorPos = (ev) => ({
     y: ev.clientY + window.scrollY,
 });
 
+const bodyStyle = document.body.style;
+
 /**
  * Sets the document's body cursor.
  * @param {cursorState} new_cursor
@@ -68,11 +65,7 @@ const getCursorPos = (ev) => ({
  * @package
  */
 const setGlobalCursorStyle = (new_cursor, old_cursor) => {
-    /*if (old_cursor)
-        document.body.classList.toggle(cursorStyleClasses[old_cursor]);
-
-    document.body.classList.toggle(cursorStyleClasses[new_cursor]);*/
-    document.body.style.cursor = cursorStyle[new_cursor];
+    bodyStyle.cursor = cursorStyle[new_cursor];
 };
 
 

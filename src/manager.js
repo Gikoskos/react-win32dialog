@@ -17,11 +17,8 @@ import Timer from './timer';
  * The names of the methods and properties that should be implemented by
  * dialogs that are used from the WindowManager observer class.
  *
- * This object is used purely for testing purposes. 
- * Objects that are registered to the window manager can choose on whether they want
- * the manager to perform a runtime validity check on them or not, to see whether
- * they inherit all the properties and methods that the manager requires.
- * See the registerWindow method.
+ * This object was used purely for testing purposes.
+ * @private
  */
 const DialogInterface = {
     methods: [

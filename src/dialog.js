@@ -29,6 +29,7 @@ import defaultRestoreIcon from './assets/default-restore-icon.png';
 /**
  * A React component that renders a resizeable/moveable dialog box
  * with a classic Windows aesthetic.
+ * @public
  */
 export default class Win32Dialog extends React.Component {
     static propTypes = {
@@ -294,14 +295,15 @@ export default class Win32Dialog extends React.Component {
 
             if (tooltipRect.right > viewportWidth) {
                 this.setState((prevState) => {
-                    let diff = tooltipRect.right - viewportWidth;
+                    let diff = tooltipRect.right - viewportWidth,
+                        {prev_x, prev_y} = prevState.tooltipArgs.position;
 
                     return {
                         tooltipArgs: {
                             ...prevState.tooltipArgs,
                             position: {
-                                x: prevState.tooltipArgs.position.x - diff,
-                                y: prevState.tooltipArgs.position.y
+                                x: prev_x - diff,
+                                y: prev_y
                             },
                         }
                     };

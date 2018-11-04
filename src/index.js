@@ -1,5 +1,5 @@
 'use strict';
 
-import styles from './styles.scss';
+import './styles.scss';
 
 export { default } from './dialog';
